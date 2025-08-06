@@ -28,4 +28,4 @@ coverage
 *.sw?
 
 *.tsbuildinfo
-src/aiConfig.js
+# src/aiConfig.js
