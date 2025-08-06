@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { GEMINI_API_KEYS, GEMINI_API_ENDPOINT } from './aiConfig.js';
+import { GEMINI_API_KEYS, GEMINI_API_ENDPOINT } from './aiconfig.js'; // <- 改成全小写
+
 
 let currentKeyIndex = 0;
 
