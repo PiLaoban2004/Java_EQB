@@ -462,5 +462,14 @@ onUnmounted(() => {
     white-space: normal;
     word-break: break-all;
   }
+
+  .el-collapse-item__header {
+    white-space: normal;
+    word-break: break-word;
+    height: auto;
+    line-height: 1.5;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
 }
 </style>
