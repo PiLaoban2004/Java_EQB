@@ -1,7 +1,13 @@
 <template>
   <el-container>
     <el-main>
-      <el-card class="box-card">
+      <el-card
+        class="box-card"
+        v-loading="isScoring"
+        :element-loading-text="scoringProgressText"
+        element-loading-spinner="el-icon-loading"
+        element-loading-background="rgba(255, 255, 255, 0.8)"
+      >
         <template #header>
           <div class="card-header">
             <span>Java 知识能力测试</span>
@@ -90,6 +96,10 @@
                 <p>你的答案: {{ formatUserAnswer(userAnswers[getGlobalIndex(index)]) }}</p>
                 <p>正确答案: {{ Array.isArray(question.answer) ? question.answer.join(', ') : question.answer }}</p>
                 <p><strong>解析:</strong> {{ question.explanation }}</p>
+                <div v-if="aiFeedback[question.id]" class="ai-feedback">
+                  <p><strong>AI 评语:</strong> {{ aiFeedback[question.id].feedback }}</p>
+                  <p><strong>AI 评分:</strong> {{ aiFeedback[question.id].score }} / {{ question.score }}</p>
+                </div>
               </el-collapse-item>
             </el-collapse>
             <el-button @click="backToResults" style="margin-top: 20px;">返回结果页</el-button>
@@ -103,8 +113,12 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue';
 import { questions as allQuestions } from './questions.js';
+import { judgeAnswer } from './aiService.js';
 
 const questions = ref(allQuestions);
+const aiFeedback = ref({});
+const isScoring = ref(false);
+const scoringProgressText = ref('');
 const quizStarted = ref(false);
 const quizSubmitted = ref(false);
 const currentPage = ref(0);
@@ -222,8 +236,30 @@ function nextQuestion() {
   }
 }
 
-function submitQuiz() {
+async function submitQuiz() {
   clearInterval(timer);
+  isScoring.value = true;
+
+  const questionsToJudge = [];
+  for (let i = 0; i < questions.value.length; i++) {
+    const question = questions.value[i];
+    if ((question.type === 'short_answer' || question.type === 'code') && userAnswers.value[i] && userAnswers.value[i].trim()) {
+      questionsToJudge.push({ question, userAnswer: userAnswers.value[i] });
+    }
+  }
+
+  // Process AI judging sequentially to avoid hitting rate limits
+  for (let i = 0; i < questionsToJudge.length; i++) {
+    const item = questionsToJudge[i];
+    scoringProgressText.value = `AI 正在评分第 ${i + 1} / ${questionsToJudge.length} 题...`;
+    const result = await judgeAnswer(item.question, item.question.answer, item.userAnswer);
+    aiFeedback.value[item.question.id] = result;
+  }
+  
+  scoringProgressText.value = '计算最终得分...';
+  await new Promise(resolve => setTimeout(resolve, 500)); // Short delay for final text
+  
+  isScoring.value = false;
   calculatePageScore();
   quizSubmitted.value = true;
 }
@@ -231,43 +267,32 @@ function submitQuiz() {
 function calculatePageScore() {
   let score = 0;
   const start = currentPage.value * questionsPerPage;
-  for (let i = 0; i < currentQuestions.value.length; i++) {
-    const question = questions.value[start + i];
-    // 对于简答题和代码题，只要回答就给分，或者可以设置为0分，这里暂时按给分处理
-    if (question.type === 'short_answer' || question.type === 'code') {
-        if(userAnswers.value[start + i] && userAnswers.value[start + i].trim().length > 0) {
-            // 这里可以给一个固定分数，或者按题目分数给，暂时按题目分数
-            score += question.score;
-        }
-    } else {
-        if (isCorrect(start + i)) {
-            score += question.score;
-        }
+  const end = start + questionsPerPage;
+
+  for (let i = start; i < end && i < questions.value.length; i++) {
+    const question = questions.value[i];
+    if (aiFeedback.value[question.id]) {
+      score += aiFeedback.value[question.id].score;
+    } else if (isCorrect(i)) {
+      score += question.score;
     }
   }
   pageScore.value = score;
+  // We call calculateTotalScore here to ensure it's updated after page score
   calculateTotalScore();
 }
 
 function calculateTotalScore() {
-    let score = 0;
-    for (let i = 0; i < questions.value.length; i++) {
-        const question = questions.value[i];
-        const userAnswer = userAnswers.value[i];
-
-        if (userAnswer !== null && (!Array.isArray(userAnswer) || userAnswer.length > 0)) {
-             if (question.type === 'short_answer' || question.type === 'code') {
-                if(userAnswer && userAnswer.trim().length > 0) {
-                    score += question.score;
-                }
-            } else {
-                if (isCorrect(i)) {
-                    score += question.score;
-                }
-            }
-        }
+  let score = 0;
+  for (let i = 0; i < questions.value.length; i++) {
+    const question = questions.value[i];
+    if (aiFeedback.value[question.id]) {
+      score += aiFeedback.value[question.id].score;
+    } else if (isCorrect(i)) {
+      score += question.score;
     }
-    totalScore.value = score;
+  }
+  totalScore.value = score;
 }
 
 function reviewAnswers() {
@@ -383,9 +408,59 @@ onUnmounted(() => {
 .wrong-title {
   color: #F56C6C;
 }
+.ai-feedback {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f0f8ff;
+  border-left: 4px solid #409EFF;
+  border-radius: 4px;
+}
 .code-input textarea {
   font-family: 'Courier New', Courier, monospace;
   background-color: #f4f4f4;
   color: #333;
+}
+
+@media (max-width: 768px) {
+  .box-card {
+    margin: 10px;
+    padding: 5px;
+  }
+
+  h1 {
+    font-size: 1.5em;
+  }
+
+  h2 {
+    font-size: 1.2em;
+  }
+
+  .quiz-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    font-size: 1em;
+  }
+
+  .navigation-buttons, .page-navigation-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .navigation-buttons .el-button, .page-navigation-buttons .el-button {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .el-radio, .el-checkbox {
+    height: auto;
+    padding: 10px;
+    white-space: normal;
+  }
+
+  .el-radio .el-radio__label, .el-checkbox .el-checkbox__label {
+    white-space: normal;
+    word-break: break-all;
+  }
 }
 </style>
