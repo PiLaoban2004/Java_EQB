@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GEMINI_API_KEYS, GEMINI_API_ENDPOINT } from './aiconfig.js'; // <- 改成全小写
+import { GEMINI_API_KEYS, GEMINI_API_ENDPOINT } from './aiConfig.js';
 
 
 let currentKeyIndex = 0;
@@ -26,47 +26,41 @@ const safetySettings = [
 
 export const judgeAnswer = async (question, standardAnswer, userAnswer) => {
   const apiKey = getNextKey();
-  // The proxy likely uses an OpenAI-compatible endpoint.
-  const apiUrl = `${GEMINI_API_ENDPOINT}/v1/chat/completions`;
+  const model = 'gemini-2.5-pro'; // Updated model based on user feedback
+  const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  const systemPrompt = `You are an expert Java technical interviewer. Your task is to evaluate a user's answer to a question. Based on the provided question, standard answer, and the user's answer, you must determine if the answer is correct, provide concise feedback, and give a score from 0 to the question's maximum possible score.
+  const prompt = `You are an expert Java technical interviewer. Your task is to evaluate a user's answer to a question. Based on the provided question, standard answer, and the user's answer, you must determine if the answer is correct, provide concise feedback, and give a score from 0 to the question's maximum possible score.
 
 You MUST return your evaluation in a strict JSON format, without any markdown formatting or other text. The JSON object must contain these three fields:
 - "isCorrect": boolean
 - "feedback": string (your concise feedback)
 - "score": number (a score from 0 to ${question.score})
+
+Question: "${question.question}"
+Standard Answer: "${question.answer}"
+User's Answer: "${userAnswer}"
+Maximum Score: ${question.score}
 `;
 
-  const userPrompt = `
-    Question: "${question.question}"
-    Standard Answer: "${question.answer}"
-    User's Answer: "${userAnswer}"
-    Maximum Score: ${question.score}
-  `;
-
   const requestBody = {
-    model: "gemini-2.5-flash", // Using the model name specified by the user
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ],
-    temperature: 0.2,
-    top_p: 1,
-    max_tokens: 2048
-    // Removing response_format as it might not be supported by the proxy/model, causing a 500 error.
-    // The prompt is strong enough to enforce JSON output.
+    contents: [{
+      parts: [{
+        text: prompt
+      }]
+    }],
+    generationConfig: generationConfig,
+    safetySettings: safetySettings,
   };
 
   try {
     const response = await axios.post(apiUrl, requestBody, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}` // OpenAI-compatible APIs use Bearer token
-      },
+      }
     });
 
-    if (response.data.choices && response.data.choices.length > 0) {
-      let responseText = response.data.choices[0].message.content;
+    if (response.data.candidates && response.data.candidates.length > 0) {
+      let responseText = response.data.candidates[0].content.parts[0].text;
       
       // Add robust cleaning for the JSON string
       const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
@@ -89,13 +83,14 @@ You MUST return your evaluation in a strict JSON format, without any markdown fo
         return { isCorrect: false, feedback: `AI评分失败: 响应格式错误 (${jsonError.message})`, score: 0 };
       }
     } else {
-      console.error('API Error: No choices returned.', response.data);
+      console.error('API Error: No candidates returned.', response.data);
       return { isCorrect: false, feedback: 'AI 未返回有效评分。', score: 0 };
     }
   } catch (error) {
     console.error('Error calling AI API:', error.response ? error.response.data : error.message);
     let feedback = 'AI 评分失败，请稍后重试。';
     if (error.response) {
+      // Google API errors are often in error.response.data.error.message
       feedback = `AI 评分失败 (HTTP ${error.response.status}): ${error.response.data?.error?.message || '未知错误'}`;
     } else if (error.request) {
       feedback = 'AI 评分失败: 未收到服务器响应，请检查网络或代理地址。';
