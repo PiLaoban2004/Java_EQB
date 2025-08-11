@@ -27,4 +27,4 @@ npm run dev
 ```sh
 npm run build
 ```
-Trigger new build
+Trigger new buildgi
