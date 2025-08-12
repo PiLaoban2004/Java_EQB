@@ -563,3 +563,21 @@ export const questions =
     "explanation": "这是并发修改异常的又一个经典案例，这次是发生在`Map`的遍历中。它强化了“在迭代过程中必须使用迭代器自己的方法来修改集合”这一黄金法则。"
   }
 ]
+
+/**
+ * Calculates the grade based on the score.
+ * S: 90-100
+ * A: 80-89
+ * B: 70-79
+ * C: 60-69
+ * D: 0-59
+ * @param {number} score - The total score.
+ * @returns {string} The grade.
+ */
+export const getGrade = (score) => {
+  if (score >= 90) return 'S';
+  if (score >= 80) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 60) return 'C';
+  return 'D';
+};
