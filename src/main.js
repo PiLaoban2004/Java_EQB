@@ -3,10 +3,17 @@ import App from './App.vue'
 import router from './router'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import { initUserService } from './services/userService'
 
-const app = createApp(App)
+async function startApp() {
+  await initUserService();
 
-app.use(router)
-app.use(ElementPlus)
+  const app = createApp(App)
 
-app.mount('#app')
+  app.use(router)
+  app.use(ElementPlus)
+
+  app.mount('#app')
+}
+
+startApp();

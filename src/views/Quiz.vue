@@ -8,13 +8,13 @@
   >
     <template #header>
       <div class="card-header">
-        <span>Java 综合能力测试</span>
+        <span>{{ quizTitle }}</span>
       </div>
     </template>
 
     <div v-if="!quizStarted">
-      <h1>Java 综合能力测试</h1>
-      <p>本试卷共10题，包含单选、多选、简答和代码题。</p>
+      <h1>{{ quizTitle }}</h1>
+      <p>{{ quizDescription }}</p>
       <p>准备好开始了吗？</p>
       <el-button type="primary" @click="startQuiz">开始答题</el-button>
     </div>
@@ -28,6 +28,7 @@
       
       <el-card class="question-card" v-if="currentQuestion">
         <h3>{{ currentQuestion.question }} ({{ currentQuestion.score }}分)</h3>
+        <pre v-if="currentQuestion.code_prompt" class="code-prompt">{{ currentQuestion.code_prompt }}</pre>
         <p v-if="currentQuestion.type === 'multiple'" class="multiple-choice-indicator">(多选题)</p>
         
         <el-radio-group v-if="currentQuestion.type === 'single'" v-model="userAnswers[currentQuestion.id]" class="options-group">
@@ -115,14 +116,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { getGrade } from '../questions.js';
 import { getQuestions, deleteQuestion } from '../services/questionService.js';
 import { judgeAnswer } from '../aiService.js';
 import { addWrongQuestion } from '../services/wrongBookService.js';
+import { saveQuizState, loadQuizState, clearQuizState } from '../services/quizStateService.js';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
-const allQuestions = ref([]);
+const props = defineProps({
+  type: String
+});
+
 const testPaper = ref([]);
 const aiFeedback = ref({});
 const isScoring = ref(false);
@@ -137,6 +143,35 @@ let timer;
 
 const showReview = ref(false);
 const activeCollapse = ref([]);
+
+const route = useRoute();
+const quizType = computed(() => props.type || 'comprehensive');
+
+const quizTitle = computed(() => {
+  return quizType.value === 'special' ? '专项练习' : 'Java 综合能力测试';
+});
+
+const quizDescription = computed(() => {
+  if (quizType.value === 'special') {
+    return '本试卷包含单选题和多选题，专注于特定知识点。';
+  }
+  return '本试卷共10题，包含单选、多选、简答和代码题。';
+});
+
+onMounted(() => {
+  const savedState = loadQuizState();
+  if (savedState && !props.type) { // Only load saved state if not starting a specific quiz type
+    testPaper.value = savedState.testPaper;
+    userAnswers.value = savedState.userAnswers;
+    totalScore.value = savedState.totalScore;
+    finalGrade.value = savedState.finalGrade;
+    aiFeedback.value = savedState.aiFeedback;
+    quizStarted.value = true;
+    quizSubmitted.value = true;
+  } else if (props.type) {
+    startQuiz();
+  }
+});
 
 const currentQuestion = computed(() => testPaper.value[currentQuestionIndex.value]);
 
@@ -177,10 +212,16 @@ function isCorrect(question) {
 }
 
 async function startQuiz() {
-  allQuestions.value = await getQuestions();
-  testPaper.value = generateTestPaperFrom(allQuestions.value);
+  clearQuizState();
+  const currentQuestions = await getQuestions();
+  testPaper.value = generateTestPaperFrom(currentQuestions, quizType.value);
 
-  if (testPaper.value.length < 10) {
+  if (testPaper.value.length === 0) {
+    ElMessage.error("无法生成试卷，可能是题库为空或题型不足。");
+    return;
+  }
+  
+  if (testPaper.value.length < 10 && quizType.value === 'comprehensive') {
     ElMessage.warning("题库题目不足，无法生成完整试卷！");
   }
 
@@ -200,7 +241,7 @@ async function startQuiz() {
   startTimer();
 }
 
-function generateTestPaperFrom(questions) {
+function generateTestPaperFrom(questions, type = 'comprehensive') {
   const shuffleArray = (array) => {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -209,18 +250,25 @@ function generateTestPaperFrom(questions) {
     return array;
   };
 
-  const selectRandomQuestions = (type, count) => {
-    const filtered = questions.filter(q => q.type === type);
+  const selectRandomQuestions = (qType, count) => {
+    const filtered = questions.filter(q => q.type === qType);
     return shuffleArray([...filtered]).slice(0, count);
   };
 
-  const singleChoice = selectRandomQuestions('single', 4).map(q => ({ ...q, score: 5 }));
-  const multipleChoice = selectRandomQuestions('multiple', 3).map(q => ({ ...q, score: 10 }));
-  const shortAnswer = selectRandomQuestions('short_answer', 2).map(q => ({ ...q, score: 15 }));
-  const codeQuestion = selectRandomQuestions('code', 1).map(q => ({ ...q, score: 20 }));
-
-  const paper = [...singleChoice, ...multipleChoice, ...shortAnswer, ...codeQuestion];
-  return shuffleArray(paper);
+  if (type === 'special') {
+    const singleChoice = selectRandomQuestions('single', 5).map(q => ({ ...q, score: 10 }));
+    const multipleChoice = selectRandomQuestions('multiple', 5).map(q => ({ ...q, score: 10 }));
+    const trueFalse = selectRandomQuestions('true_false', 2).map(q => ({ ...q, score: 10 }));
+    const paper = [...singleChoice, ...multipleChoice, ...trueFalse];
+    return shuffleArray(paper);
+  } else { // comprehensive
+    const singleChoice = selectRandomQuestions('single', 4).map(q => ({ ...q, score: 5 }));
+    const multipleChoice = selectRandomQuestions('multiple', 3).map(q => ({ ...q, score: 10 }));
+    const shortAnswer = selectRandomQuestions('short_answer', 2).map(q => ({ ...q, score: 15 }));
+    const codeQuestion = selectRandomQuestions('code', 1).map(q => ({ ...q, score: 20 }));
+    const paper = [...singleChoice, ...multipleChoice, ...shortAnswer, ...codeQuestion];
+    return shuffleArray(paper);
+  }
 }
 
 function killQuestion(questionId) {
@@ -280,6 +328,16 @@ async function submitQuiz() {
   clearInterval(timer);
   isScoring.value = true;
 
+  // Initialize feedback for all subjective questions
+  testPaper.value.forEach(q => {
+    if (q.type === 'short_answer' || q.type === 'code') {
+      if (!userAnswers.value[q.id] || !userAnswers.value[q.id].trim()) {
+        // For unanswered subjective questions, give 0 score directly
+        aiFeedback.value[q.id] = { isCorrect: false, feedback: '未作答', score: 0 };
+      }
+    }
+  });
+
   const questionsToJudge = testPaper.value.filter(q => 
     (q.type === 'short_answer' || q.type === 'code') && userAnswers.value[q.id] && userAnswers.value[q.id].trim()
   );
@@ -292,15 +350,25 @@ async function submitQuiz() {
   calculateTotalScore();
   finalGrade.value = getGrade(totalScore.value);
   
-  // Add wrong questions to the book
-  testPaper.value.forEach(question => {
-    if (!isCorrect(question)) {
-      addWrongQuestion(question);
-    }
-  });
-
   isScoring.value = false;
   quizSubmitted.value = true;
+
+  // Save the final state
+  saveQuizState({
+    testPaper: testPaper.value,
+    userAnswers: userAnswers.value,
+    totalScore: totalScore.value,
+    finalGrade: finalGrade.value,
+    aiFeedback: aiFeedback.value,
+  });
+
+  // Now that all scoring is complete, correctly identify and add wrong questions.
+  testPaper.value.forEach(question => {
+    if (!isCorrect(question)) {
+      const userAnswer = userAnswers.value[question.id];
+      addWrongQuestion(question.id, userAnswer);
+    }
+  });
 }
 
 function calculateTotalScore() {
@@ -413,6 +481,16 @@ onUnmounted(() => {
 }
 .review-option:not(.correct-answer).user-selection {
   border-color: #f56c6c;
+}
+
+.code-prompt {
+  background-color: #f4f4f4;
+  padding: 10px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', Courier, monospace;
+  margin: 15px 0;
 }
 
 .question-actions {

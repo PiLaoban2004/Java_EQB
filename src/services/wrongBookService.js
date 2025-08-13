@@ -1,34 +1,60 @@
-const WRONG_BOOK_KEY = 'wrongAnswerBook';
+import { getUserId } from './userService';
 
 /**
- * Retrieves the wrong questions from localStorage.
- * @returns {Array} An array of wrong question objects.
+ * Retrieves the wrong questions for the current user from the backend.
+ * @returns {Promise<Array>} A promise that resolves to an array of wrong question objects.
  */
-export const getWrongQuestions = () => {
-  const data = localStorage.getItem(WRONG_BOOK_KEY);
-  return data ? JSON.parse(data) : [];
-};
+export const getWrongQuestions = async () => {
+  const userId = getUserId();
+  if (!userId) return [];
 
-/**
- * Adds a wrong question to the book.
- * It avoids duplicates based on question ID.
- * @param {Object} question - The question object to add.
- */
-export const addWrongQuestion = (question) => {
-  const questions = getWrongQuestions();
-  const isAlreadyInBook = questions.some(q => q.id === question.id);
-  if (!isAlreadyInBook) {
-    questions.push(question);
-    localStorage.setItem(WRONG_BOOK_KEY, JSON.stringify(questions));
+  try {
+    const response = await fetch(`/api/users/${userId}/wrong-questions`);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch wrong questions:', error);
+    return [];
   }
 };
 
 /**
- * Removes a question from the wrong answer book by its ID.
- * @param {number} questionId - The ID of the question to remove.
+ * Adds a wrong question to the user's book on the backend.
+ * @param {number} questionId - The ID of the question to add.
+ * @param {any} userAnswer - The user's incorrect answer.
+ * @returns {Promise<void>}
  */
-export const removeWrongQuestion = (questionId) => {
-  let questions = getWrongQuestions();
-  questions = questions.filter(q => q.id !== questionId);
-  localStorage.setItem(WRONG_BOOK_KEY, JSON.stringify(questions));
+export const addWrongQuestion = async (questionId, userAnswer) => {
+  const userId = getUserId();
+  if (!userId) return;
+
+  try {
+    await fetch(`/api/users/${userId}/wrong-questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionId, userAnswer }),
+    });
+  } catch (error) {
+    console.error('Failed to add wrong question:', error);
+  }
+};
+
+/**
+ * Removes a question from the user's wrong answer book on the backend.
+ * @param {number} questionId - The ID of the question to remove.
+ * @returns {Promise<void>}
+ */
+export const removeWrongQuestion = async (questionId) => {
+  const userId = getUserId();
+  if (!userId) return;
+
+  try {
+    await fetch(`/api/users/${userId}/wrong-questions/${questionId}`, {
+      method: 'DELETE',
+    });
+  } catch (error) {
+    console.error('Failed to remove wrong question:', error);
+  }
 };

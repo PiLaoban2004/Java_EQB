@@ -19,6 +19,7 @@
           <span class="wrong-title">{{ index + 1 }}. {{ question.question }}</span>
         </template>
 
+        <p><strong>你的答案:</strong> <span class="user-answer">{{ formatUserAnswer(question.userAnswer) }}</span></p>
         <p><strong>正确答案:</strong> {{ Array.isArray(question.answer) ? question.answer.join(', ') : question.answer }}</p>
         <p><strong>解析:</strong> {{ question.explanation }}</p>
         
@@ -42,8 +43,25 @@ onMounted(() => {
   loadWrongQuestions();
 });
 
-function loadWrongQuestions() {
-  wrongQuestions.value = getWrongQuestions();
+async function loadWrongQuestions() {
+  const questions = await getWrongQuestions();
+  wrongQuestions.value = questions.map(q => {
+    try {
+      // userAnswer is stored as a JSON string, so we need to parse it.
+      q.userAnswer = JSON.parse(q.userAnswer);
+    } catch (e) {
+      // If it's not a valid JSON string, just use it as is.
+    }
+    return q;
+  });
+}
+
+function formatUserAnswer(answer) {
+  if (answer === null || answer === undefined || answer === '') return '未作答';
+  if (Array.isArray(answer)) {
+    return answer.length > 0 ? answer.join(', ') : '未作答';
+  }
+  return answer;
 }
 
 function remove(questionId) {
@@ -55,9 +73,9 @@ function remove(questionId) {
       cancelButtonText: '取消',
       type: 'warning',
     }
-  ).then(() => {
-    removeWrongQuestion(questionId);
-    loadWrongQuestions(); // Refresh the list
+  ).then(async () => {
+    await removeWrongQuestion(questionId);
+    await loadWrongQuestions(); // Refresh the list
     ElMessage({
       type: 'success',
       message: '已成功移出错题本',
@@ -93,5 +111,9 @@ function reviewWrong() {
 }
 .wrong-title {
   color: #F56C6C;
+}
+.user-answer {
+  color: #F56C6C;
+  font-style: italic;
 }
 </style>

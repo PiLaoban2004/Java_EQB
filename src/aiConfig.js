@@ -1,10 +1,3 @@
-export const GEMINI_API_KEYS = [
-  'AIzaSyCDZSA8eIvZ0puta9EeCfIAIqXtwZMSbbE',
-  'AIzaSyDvXweftnyG7TWb2pvyCph3PhkSbRY0DRE',
-  'AIzaSyBFUxwtRtt-5BT3MxpvSxvEXrNqq-4en6M',
-  'AIzaSyBDFhYgRh3i0P59q0FjQu4rwWqvaz-BuBs',
-  'AIzaSyAkar8VzSsxfrBGGiqoBTkeiHi2swa7LpU',
-  'AIzaSyBSrOjolwvZ90_VzeSiIGavvsU8zif1nbs'
-];
-
-export const GEMINI_API_ENDPOINT = '/api';
+export const GEMINI_API_KEY = 'sk-xxwClb5rgFk5pgCqhdxPUjX8HEB9bk_CI2rHOCBlEY1sRQHO';
+export const GEMINI_API_ENDPOINT = 'http://47.99.123.168:3001/proxy/gemini';
+export const GEMINI_MODEL = 'gemini-2.5-flash';

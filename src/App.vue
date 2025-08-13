@@ -8,8 +8,9 @@
         @select="handleSelect"
         :router="true"
       >
-        <el-menu-item index="/">在线考试</el-menu-item>
+        <el-menu-item index="/">首页</el-menu-item>
         <el-menu-item index="/profile">个人中心</el-menu-item>
+        <el-menu-item index="/wrong-book">错题本</el-menu-item>
       </el-menu>
     </el-header>
     <el-main>
