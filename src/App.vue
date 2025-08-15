@@ -9,10 +9,11 @@
         :router="true"
       >
         <el-menu-item index="/">首页</el-menu-item>
-        <el-menu-item index="/profile">个人中心</el-menu-item>
-        <el-menu-item index="/wrong-book">错题本</el-menu-item>
-      </el-menu>
-    </el-header>
+          <el-menu-item index="/profile">个人中心</el-menu-item>
+          <el-menu-item index="/wrong-book">错题本</el-menu-item>
+          <el-menu-item index="/materials">学习资料</el-menu-item>
+        </el-menu>
+      </el-header>
     <el-main>
       <router-view></router-view>
     </el-main>

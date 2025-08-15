@@ -27,9 +27,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://pilaoban.dpdns.org',
+        target: 'http://127.0.0.1:8788', // Point to the local wrangler dev server
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

@@ -70,7 +70,7 @@
     <div v-if="quizSubmitted">
       <div v-if="!showReview">
         <h1>测试完成!</h1>
-        <h2>总分: <span :class="totalScore >= 60 ? 'score-pass' : 'score-fail'">{{ totalScore }}</span> / 100</h2>
+        <h2>总分: <span :class="totalScore >= maxScore * 0.6 ? 'score-pass' : 'score-fail'">{{ totalScore }}</span> / {{ maxScore }}</h2>
         <h2>评级: <span class="grade">{{ finalGrade }}</span></h2>
         
         <div class="page-navigation-buttons">
@@ -118,12 +118,30 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { getGrade } from '../questions.js';
-import { getQuestions, deleteQuestion } from '../services/questionService.js';
+import { getQuestions, deleteQuestion, resetQuestions } from '../services/questionService.js';
 import { judgeAnswer } from '../aiService.js';
 import { addWrongQuestion } from '../services/wrongBookService.js';
+import { updateMastery } from '../services/masteryService.js';
 import { saveQuizState, loadQuizState, clearQuizState } from '../services/quizStateService.js';
 import { ElMessage, ElMessageBox } from 'element-plus';
+
+/**
+ * Calculates the grade based on the score percentage.
+ * S: 90-100
+ * A: 80-89
+ * B: 70-79
+ * C: 60-69
+ * D: 0-59
+ * @param {number} score - The score percentage.
+ * @returns {string} The grade.
+ */
+const getGrade = (score) => {
+  if (score >= 90) return 'S';
+  if (score >= 80) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 60) return 'C';
+  return 'D';
+};
 
 const props = defineProps({
   type: String
@@ -155,19 +173,20 @@ const quizDescription = computed(() => {
   if (quizType.value === 'special') {
     return '本试卷包含单选题和多选题，专注于特定知识点。';
   }
-  return '本试卷共10题，包含单选、多选、简答和代码题。';
+  return '本试卷包含单选、多选、简答和代码题。';
 });
 
 onMounted(() => {
   const savedState = loadQuizState();
-  if (savedState && !props.type) { // Only load saved state if not starting a specific quiz type
+  if (savedState) {
     testPaper.value = savedState.testPaper;
     userAnswers.value = savedState.userAnswers;
     totalScore.value = savedState.totalScore;
     finalGrade.value = savedState.finalGrade;
     aiFeedback.value = savedState.aiFeedback;
-    quizStarted.value = true;
-    quizSubmitted.value = true;
+    quizStarted.value = savedState.quizStarted;
+    quizSubmitted.value = savedState.quizSubmitted;
+    quizType.value = savedState.quizType;
   } else if (props.type) {
     startQuiz();
   }
@@ -186,6 +205,10 @@ const formattedTime = computed(() => {
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 });
 
+const maxScore = computed(() => {
+  return testPaper.value.reduce((sum, q) => sum + (q.score || 0), 0);
+});
+
 function isCorrect(question) {
   const userAnswer = userAnswers.value[question.id];
   
@@ -198,9 +221,25 @@ function isCorrect(question) {
       return userAnswer === question.answer;
     case 'multiple':
       if (Array.isArray(userAnswer) && Array.isArray(question.answer)) {
+        console.log(`--- Debugging Question ID: ${question.id} ---`);
+        console.log("User Answer (raw):", userAnswer);
+        console.log("Correct Answer (raw):", question.answer);
+
         const sortedUserAnswer = [...userAnswer].sort();
         const sortedCorrectAnswer = [...question.answer].sort();
-        return JSON.stringify(sortedUserAnswer) === JSON.stringify(sortedCorrectAnswer);
+
+        console.log("User Answer (sorted):", sortedUserAnswer);
+        console.log("Correct Answer (sorted):", sortedCorrectAnswer);
+
+        const userStr = JSON.stringify(sortedUserAnswer);
+        const correctStr = JSON.stringify(sortedCorrectAnswer);
+
+        console.log("User Answer (JSON):", userStr);
+        console.log("Correct Answer (JSON):", correctStr);
+        console.log("Comparison Result:", userStr === correctStr);
+        console.log(`-----------------------------------------`);
+
+        return userStr === correctStr;
       }
       return false;
     case 'short_answer':
@@ -212,6 +251,7 @@ function isCorrect(question) {
 }
 
 async function startQuiz() {
+  resetQuestions();
   clearQuizState();
   const currentQuestions = await getQuestions();
   testPaper.value = generateTestPaperFrom(currentQuestions, quizType.value);
@@ -255,18 +295,27 @@ function generateTestPaperFrom(questions, type = 'comprehensive') {
     return shuffleArray([...filtered]).slice(0, count);
   };
 
+  const processQuestions = (qArray) => {
+    return qArray.map(q => {
+      if ((q.type === 'single' || q.type === 'multiple') && q.options) {
+        return { ...q, options: shuffleArray([...q.options]) };
+      }
+      return q;
+    });
+  };
+
   if (type === 'special') {
-    const singleChoice = selectRandomQuestions('single', 5).map(q => ({ ...q, score: 10 }));
-    const multipleChoice = selectRandomQuestions('multiple', 5).map(q => ({ ...q, score: 10 }));
-    const trueFalse = selectRandomQuestions('true_false', 2).map(q => ({ ...q, score: 10 }));
-    const paper = [...singleChoice, ...multipleChoice, ...trueFalse];
+    const singleChoice = processQuestions(selectRandomQuestions('single', 5).map(q => ({ ...q, score: 10 })));
+    const multipleChoice = processQuestions(selectRandomQuestions('multiple', 5).map(q => ({ ...q, score: 10 })));
+    const paper = [...singleChoice, ...multipleChoice];
     return shuffleArray(paper);
   } else { // comprehensive
-    const singleChoice = selectRandomQuestions('single', 4).map(q => ({ ...q, score: 5 }));
-    const multipleChoice = selectRandomQuestions('multiple', 3).map(q => ({ ...q, score: 10 }));
-    const shortAnswer = selectRandomQuestions('short_answer', 2).map(q => ({ ...q, score: 15 }));
-    const codeQuestion = selectRandomQuestions('code', 1).map(q => ({ ...q, score: 20 }));
-    const paper = [...singleChoice, ...multipleChoice, ...shortAnswer, ...codeQuestion];
+    const singleChoice = processQuestions(selectRandomQuestions('single', 4));
+    const multipleChoice = processQuestions(selectRandomQuestions('multiple', 2));
+    const shortAnswer = selectRandomQuestions('short_answer', 3);
+    const code = selectRandomQuestions('code', 1);
+    
+    const paper = [...singleChoice, ...multipleChoice, ...shortAnswer, ...code];
     return shuffleArray(paper);
   }
 }
@@ -348,7 +397,8 @@ async function submitQuiz() {
   }
   
   calculateTotalScore();
-  finalGrade.value = getGrade(totalScore.value);
+  const percentageScore = maxScore.value > 0 ? (totalScore.value / maxScore.value) * 100 : 0;
+  finalGrade.value = getGrade(percentageScore);
   
   isScoring.value = false;
   quizSubmitted.value = true;
@@ -360,11 +410,16 @@ async function submitQuiz() {
     totalScore: totalScore.value,
     finalGrade: finalGrade.value,
     aiFeedback: aiFeedback.value,
+    quizStarted: quizStarted.value,
+    quizSubmitted: quizSubmitted.value,
+    quizType: quizType.value,
   });
 
-  // Now that all scoring is complete, correctly identify and add wrong questions.
+  // Now that all scoring is complete, update mastery and wrong answers.
   testPaper.value.forEach(question => {
-    if (!isCorrect(question)) {
+    const correct = isCorrect(question);
+    updateMastery(question.id, correct);
+    if (!correct) {
       const userAnswer = userAnswers.value[question.id];
       addWrongQuestion(question.id, userAnswer);
     }

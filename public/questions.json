@@ -1,4 +1,3 @@
-export const questions = 
 [
   {
     "id": 1,
@@ -79,7 +78,8 @@ export const questions =
   {
     "id": 7,
     "type": "code",
-    "question": "请使用 `LinkedList` 的特有API，模拟一个栈（Stack）的入栈（push）和出栈（pop）操作。假设 `LinkedList<String> stack = new LinkedList<>();`",
+    "question": "请使用 `LinkedList` 的特有API，模拟一个栈（Stack）的入栈（push）和出栈（pop）操作。",
+    "code_prompt": "LinkedList<String> stack = new LinkedList<>();",
     "answer": "// 入栈 \nstack.push(\"element1\"); \n// 或者 \nstack.addFirst(\"element1\"); \n\n// 出栈 \nString element = stack.pop(); \n// 或者 \nString element = stack.removeFirst();",
     "score": 3.5,
     "explanation": "笔记中提到`LinkedList`实现了`Deque`接口，因此提供了`push`和`pop`等方法，可以方便地作为栈使用。这考察了对`LinkedList`作为双端队列/栈使用的熟悉程度。"
@@ -175,6 +175,7 @@ export const questions =
     "id": 15,
     "type": "code",
     "question": "请补全以下代码，使用推荐的方式（`entrySet`）遍历一个`HashMap`并打印其所有键值对。",
+    "code_prompt": "Map<Integer, String> map = new HashMap<>();\nmap.put(1, \"Java\");\nmap.put(2, \"Python\");",
     "answer": "Map<Integer, String> map = new HashMap<>();\nmap.put(1, \"Java\");\nmap.put(2, \"Python\");\n\nSet<Map.Entry<Integer, String>> entries = map.entrySet();\nfor (Map.Entry<Integer, String> entry : entries) {\n    System.out.println(entry.getKey() + \" -> \" + entry.getValue());\n}",
     "score": 3.5,
     "explanation": "考察对`Map`最高效遍历方式`entrySet`的实际编码能力，这是日常开发中的常用代码片段。"
@@ -245,6 +246,7 @@ export const questions =
     "id": 21,
     "type": "code",
     "question": "请编写一个`Comparator`，用于对一个`List<String>`按字符串长度进行降序排序。如果长度相同，则按字典序升序排序。",
+    "code_prompt": "List<String> list = new ArrayList<>(Arrays.asList(\"apple\", \"banana\", \"pear\", \"kiwi\"));",
     "answer": "list.sort((s1, s2) -> {\n    if (s1.length() != s2.length()) {\n        return s2.length() - s1.length(); // 长度降序\n    } else {\n        return s1.compareTo(s2); // 字典序升序\n    }\n});",
     "score": 4.5,
     "explanation": "本题考察了`Comparator`接口的灵活运用，涉及两个排序维度（主、次排序条件），是实际开发中常见的自定义排序场景。使用Lambda表达式是现代Java的推荐写法。"
@@ -364,6 +366,7 @@ export const questions =
     "id": 33,
     "type": "code",
     "question": "给定一个`ArrayList<Integer> list`，请使用`list.sort()`方法和Lambda表达式对其进行降序排序。",
+    "code_prompt": "ArrayList<Integer> list = new ArrayList<>(Arrays.asList(3, 1, 4, 1, 5, 9));",
     "answer": "list.sort((o1, o2) -> o2 - o1);",
     "score": 3,
     "explanation": "考察使用Lambda表达式快速实现`Comparator`接口，这是Java 8以后推荐的简洁写法。`o2 - o1`是实现Integer降序排序的经典技巧。"
@@ -493,6 +496,7 @@ export const questions =
     "id": 44,
     "type": "code",
     "question": "如果有一个`User`类，包含`id`和`name`属性。请重写其`equals()`方法，使得只有当`id`和`name`都相同时，两个`User`对象才被认为是相等的。",
+    "code_prompt": "class User {\n    private int id;\n    private String name;\n\n    // constructor, getters, setters...\n\n    @Override\n    public boolean equals(Object obj) {\n        // Your code here\n    }\n}",
     "answer": "@Override\npublic boolean equals(Object obj) {\n    if (this == obj) return true;\n    if (obj == null || getClass() != obj.getClass()) return false;\n    User otherUser = (User) obj;\n    return this.id == otherUser.id && java.util.Objects.equals(this.name, otherUser.name);\n}",
     "score": 3.5,
     "explanation": "考察`equals`方法的标准写法，包括地址比较、null检查和类型检查等前置判断。使用`Objects.equals()`来处理`name`可能为null的情况，是更健壮的写法。"
@@ -557,27 +561,354 @@ export const questions =
   {
     "id": 50,
     "type": "code",
-    "question": "假设有一个`Map<String, Integer> map`，其中一个键为\"b\"。以下这段删除操作的代码有什么问题？应该如何修正？\n\nfor (String key : map.keySet()) {\n    if (\"b\".equals(key)) {\n        map.remove(\"b\");\n    }\n}",
+    "question": "假设有一个`Map<String, Integer> map`，其中一个键为\"b\"。以下这段删除操作的代码有什么问题？应该如何修正？",
+    "code_prompt": "for (String key : map.keySet()) {\n    if (\"b\".equals(key)) {\n        map.remove(\"b\");\n    }\n}",
     "answer": "问题：这段代码会在运行时抛出`ConcurrentModificationException`，因为在通过`keySet`的迭代器进行遍历时，使用了`map`自身的方法`remove`来修改集合结构。\n\n修正：应该使用迭代器自身的`remove`方法进行删除。\n\nIterator<String> iterator = map.keySet().iterator();\nwhile (iterator.hasNext()) {\n    String key = iterator.next();\n    if (\"b\".equals(key)) {\n        iterator.remove(); // 正确做法\n    }\n}",
     "score": 4,
     "explanation": "这是并发修改异常的又一个经典案例，这次是发生在`Map`的遍历中。它强化了“在迭代过程中必须使用迭代器自己的方法来修改集合”这一黄金法则。"
+  },
+  {
+    "id": 51,
+    "type": "single",
+    "question": "根据笔记，Java I/O将复杂的数据交换过程抽象为一种统一的模型，这个模型是什么？",
+    "options": ["File", "Buffer", "Channel", "Stream"],
+    "answer": "Stream",
+    "score": 1.5,
+    "explanation": "笔记开篇即明确指出，Java I/O的核心思想是将数据交换抽象为“流 (Stream)”，它是一种抽象的数据通道。"
+  },
+  {
+    "id": 52,
+    "type": "single",
+    "question": "关于`java.io.File`类，以下哪个描述是最准确的？",
+    "options": [
+      "一个`File`对象包含了其所指向文件的实际数据内容。",
+      "创建一个`new File(\"test.txt\")`对象会立即在磁盘上创建一个物理文件。",
+      "`File`类是文件和目录路径名的抽象表示，是操作文件系统的入口。",
+      "读写文件内容是`File`类的核心功能。"
+    ],
+    "answer": "`File`类是文件和目录路径名的抽象表示，是操作文件系统的入口。",
+    "score": 2.5,
+    "explanation": "笔记中重点强调了`File`类不等于文件内容，它仅仅是一个路径的代表。要读写内容，必须使用I/O流。创建`File`对象并不会创建物理文件，需要调用`createNewFile()`方法。"
+  },
+  {
+    "id": 53,
+    "type": "short_answer",
+    "question": "请简述字节流和字符流的核心区别，并说明在何种场景下应该优先选择字符流？",
+    "answer": "核心区别在于处理的数据单元不同：字节流以字节（byte）为单位，可以处理任何类型的数据；字符流以字符（char）为单位，专为处理文本数据设计。当需要处理纯文本文件（如.txt, .java, .properties, .xml）时，应该优先选择字符流，因为它可以自动处理字符编码，有效防止乱码问题。",
+    "score": 3.5,
+    "explanation": "这是对I/O流两大分支的根本性考察，理解它们的适用场景是正确使用Java I/O的基础。"
+  },
+  {
+    "id": 54,
+    "type": "single",
+    "question": "从JDK 7开始，推荐使用`try-with-resources`语句来处理I/O流。其最主要的好处是什么？",
+    "options": [
+      "它能显著提高文件读写的性能。",
+      "它能自动捕获并处理所有的`IOException`。",
+      "它能保证流资源被自动、正确地关闭，无论是否发生异常，从而避免资源泄漏。",
+      "它允许在单个`try`块中并发地读写多个文件。"
+    ],
+    "answer": "它能保证流资源被自动、正确地关闭，无论是否发生异常，从而避免资源泄漏。",
+    "score": 3,
+    "explanation": "笔记中明确指出，`try-with-resources`的核心价值在于自动资源管理，它极大地简化了代码并提高了程序的健壮性，避免了在复杂的`finally`块中手动关闭资源的麻烦和潜在错误。"
+  },
+  {
+    "id": 55,
+    "type": "short_answer",
+    "question": "在使用字节数组作为缓冲区复制文件时，`out.write(buffer)`和`out.write(buffer, 0, len)`这两个写操作有何关键区别？为什么必须使用后者？",
+    "answer": "关键区别在于写入的数据量。`out.write(buffer)`会写入整个缓冲区数组的内容，而`out.write(buffer, 0, len)`只写入缓冲区中从索引0开始的`len`个字节。必须使用后者是因为，在最后一次读取文件时，读入缓冲区的数据量（`len`）很可能小于缓冲区的总大小。如果此时仍使用`out.write(buffer)`，会将缓冲区中上一次读取后残留的“脏数据”也一并写入目标文件，导致文件末尾数据损坏。",
+    "score": 4.5,
+    "explanation": "这是一个非常深入且极具实践意义的问题，考察了对缓冲读写细节的深刻理解，是衡量开发者是否真正掌握文件I/O操作的标志性问题。"
+  },
+  {
+    "id": 56,
+    "type": "multiple",
+    "question": "一个Java类的对象要想被成功序列化，必须满足以下哪些条件？",
+    "options": [
+      "该类必须实现`java.io.Serializable`接口。",
+      "该类中所有非瞬态（non-transient）的成员变量也必须是可序列化的。",
+      "该类必须提供一个公开的无参构造函数。",
+      "该类的所有方法都必须是`public`的。"
+    ],
+    "answer": [
+      "该类必须实现`java.io.Serializable`接口。",
+      "该类中所有非瞬态（non-transient）的成员变量也必须是可序列化的。"
+    ],
+    "score": 4,
+    "explanation": "序列化的基本要求是实现`Serializable`接口。此外，序列化是递归的，如果一个对象包含其他对象，这些被包含的对象（除非被`transient`修饰）也必须是可序列化的。无参构造函数是某些反序列化场景（如`Externalizable`）或框架的要求，但不是`Serializable`的强制要求。"
+  },
+  {
+    "id": 57,
+    "type": "single",
+    "question": "在使用`BufferedReader`的`readLine()`方法读取文本文件时，该方法如何表示已到达文件末尾？",
+    "options": ["返回-1", "返回一个空字符串(\"\")", "抛出`EOFException`", "返回`null`"],
+    "answer": "返回`null`",
+    "score": 2,
+    "explanation": "笔记中的代码示例明确展示了`while ((line = reader.readLine()) != null)`的用法，这说明`readLine()`在读完所有行后会返回`null`。这与字节流的`read()`方法返回-1是不同的，需要区分记忆。"
+  },
+  {
+    "id": 58,
+    "type": "code",
+    "question": "请补全代码，使用`try-with-resources`语句和缓冲流，实现一个将`source.txt`内容逐行复制到`dest.txt`的功能。",
+    "code_prompt": "try (/* ... */) {\n    // ...\n} catch (IOException e) {\n    e.printStackTrace();\n}",
+    "answer": "try (\n    BufferedReader reader = new BufferedReader(new FileReader(\"source.txt\"));\n    BufferedWriter writer = new BufferedWriter(new FileWriter(\"dest.txt\"))\n) {\n    String line;\n    while ((line = reader.readLine()) != null) {\n        writer.write(line);\n        writer.newLine(); // 写入换行符\n    }\n} catch (IOException e) {\n    e.printStackTrace();\n}",
+    "score": 4,
+    "explanation": "此题考察了字符缓冲流（`BufferedReader`, `BufferedWriter`）的典型用法，以及`try-with-resources`的正确格式。注意`readLine()`读取的内容不包含换行符，需要用`newLine()`或`write(\"\\n\")`手动添加。"
+  },
+  {
+    "id": 59,
+    "type": "single",
+    "question": "如果你需要创建一个可能包含多级不存在父目录的目录结构，例如 `data/logs/app`，应该使用`File`类的哪个方法？",
+    "options": ["create()", "mkdir()", "mkdirs()", "createNewFile()"],
+    "answer": "mkdirs()",
+    "score": 2.5,
+    "explanation": "根据笔记API表格，`mkdir()`只能创建单级目录（父目录必须存在），而`mkdirs()`可以创建此路径对应的所有不存在的父目录，符合题意。"
+  },
+  {
+    "id": 60,
+    "type": "short_answer",
+    "question": "在Java I/O中，`new BufferedInputStream(new FileInputStream(\"a.bin\"))`这种代码结构体现了哪种设计模式？请解释各个角色的对应关系。",
+    "answer": "这种结构体现了**装饰器模式 (Decorator Pattern)**。\n- **抽象组件 (Component)**: `InputStream` 抽象类。\n- **具体组件 (Concrete Component)**: `FileInputStream`，它是被装饰的原始对象，负责与物理文件直接交互。\n- **装饰器 (Decorator)**: `BufferedInputStream`，它包装（装饰）了一个`InputStream`对象，并为其增加了缓冲功能以提升性能，同时它也继承自`InputStream`，保持了接口的统一。",
+    "score": 4,
+    "explanation": "将具体的I/O类库使用上升到设计模式的高度进行考察，体现了对软件设计原则的理解，属于中高难度题目。"
+  },
+  {
+    "id": 61,
+    "type": "multiple",
+    "question": "以下哪些I/O相关的异常属于受检异常 (Checked Exception)？",
+    "options": [
+      "IOException",
+      "FileNotFoundException",
+      "NotSerializableException",
+      "ArrayIndexOutOfBoundsException"
+    ],
+    "answer": ["IOException", "FileNotFoundException", "NotSerializableException"],
+    "score": 3,
+    "explanation": "`IOException`及其大部分子类（如`FileNotFoundException`, `NotSerializableException`）都属于受检异常，编译器会强制要求进行处理。而`ArrayIndexOutOfBoundsException`是`RuntimeException`的子类，属于非受检异常。"
+  },
+  {
+    "id": 62,
+    "type": "single",
+    "question": "调用`File`对象的`delete()`方法试图删除一个目录时，什么情况下该操作会失败？",
+    "options": [
+      "目录是只读的。",
+      "目录中包含了文件或子目录。",
+      "程序没有管理员权限。",
+      "以上所有情况都可能导致失败。"
+    ],
+    "answer": "以上所有情况都可能导致失败。",
+    "score": 3,
+    "explanation": "笔记中明确指出`delete()`只能删除**空**目录。此外，文件系统的权限（只读、操作系统权限）也是`delete`能否成功的现实因素。因此，这是一个综合性的考察。"
+  },
+  {
+    "id": 63,
+    "type": "code",
+    "question": "请使用`File`类的API，编写代码来递归地删除一个非空目录及其所有内容。",
+    "code_prompt": "public void deleteDirectory(File directory) {\n    // Your code here\n}",
+    "answer": "public void deleteDirectory(File directory) {\n    File[] files = directory.listFiles();\n    if (files != null) {\n        for (File file : files) {\n            if (file.isDirectory()) {\n                deleteDirectory(file); // 递归删除子目录\n            } else {\n                file.delete(); // 删除子文件\n            }\n        }\n    }\n    directory.delete(); // 删除空目录本身\n}",
+    "score": 4.5,
+    "explanation": "这是一个经典的算法题，结合了`File`类的API（`listFiles`, `isDirectory`, `delete`）和递归思想，是面试中常见的文件操作考点。"
+  },
+  {
+    "id": 64,
+    "type": "short_answer",
+    "question": "在进行对象反序列化时，除了`IOException`，为什么还必须捕获`ClassNotFoundException`？",
+    "answer": "因为反序列化是将字节序列恢复为Java对象的过程，这个过程需要JVM根据字节流中的信息找到并加载对应的`.class`文件来构建对象。如果在当前的类路径（classpath）下找不到这个`.class`文件（例如，程序迁移后缺少了某个jar包，或者类名已更改），JVM就无法完成对象的重构，此时就会抛出`ClassNotFoundException`。",
+    "score": 3.5,
+    "explanation": "考察对反序列化底层机制的理解，即反序列化不仅仅是数据恢复，还依赖于运行时的类加载机制。"
+  },
+  {
+    "id": 65,
+    "type": "single",
+    "question": "`FileInputStream`的`read()`方法返回一个`int`类型而不是`byte`类型，其主要目的是什么？",
+    "options": [
+      "为了兼容大于一个字节的宽字符。",
+      "为了能够返回一个在合法字节值范围之外的特殊值（-1）来表示流的末尾。",
+      "因为在早期的Java中，处理`int`比处理`byte`更快。",
+      "这是一个历史遗留的API设计缺陷。"
+    ],
+    "answer": "为了能够返回一个在合法字节值范围之外的特殊值（-1）来表示流的末尾。",
+    "score": 3,
+    "explanation": "一个字节能表示的数值范围是0-255（无符号）。如果`read()`返回`byte`，那么任何返回值都可能是一个合法的数据字节，无法区分是数据还是结束信号。通过返回`int`，可以使用-1这个特殊值清晰地表示已到达流的末尾。"
+  },
+  {
+    "id": 66,
+    "type": "single",
+    "question": "在处理I/O流时，`FileReader`、`FileInputStream` 这类流通常被称为“节点流”，而`BufferedReader`、`BufferedInputStream` 这类流被称为“处理流”。“节点流”最核心的特征是什么？",
+    "options": [
+      "它们性能最高。",
+      "它们直接连接到具体的数据源或目的地（如文件、网络套接字）。",
+      "它们内部自带缓冲区。",
+      "它们只能处理字节数据。"
+    ],
+    "answer": "它们直接连接到具体的数据源或目的地（如文件、网络套接字）。",
+    "score": 3.5,
+    "explanation": "这是对I/O流装饰器模式中角色分工的理解。节点流是整个流链条的起点（输入）或终点（输出），是与物理设备直接打交道的“管道”，而处理流则是套在节点流之上的“增强设备”。"
+  },
+  {
+    "id": 67,
+    "type": "multiple",
+    "question": "以下关于对象序列化的说法，哪些是正确的？",
+    "options": [
+      "序列化是将Java对象状态转换为字节序列的过程。",
+      "只有实现了`Serializable`接口的类的对象才能被序列化。",
+      "被`transient`关键字修饰的成员变量不会被序列化。",
+      "静态（`static`）成员变量会被序列化到对象流中。"
+    ],
+    "answer": [
+      "序列化是将Java对象状态转换为字节序列的过程。",
+      "只有实现了`Serializable`接口的类的对象才能被序列化。",
+      "被`transient`关键字修饰的成员变量不会被序列化。"
+    ],
+    "score": 4,
+    "explanation": "选项D是错误的。序列化保存的是对象的状态（实例变量），而静态变量属于类级别，不属于任何特定对象的状态，因此不会被序列化。`transient`关键字的作用就是显式地排除某些实例变量，使其不参与序列化过程。"
+  },
+  {
+    "id": 68,
+    "type": "single",
+    "question": "你正在编写一个程序，需要将一个包含多种数据类型（如`int`, `double`, `String`）的复杂对象持久化到磁盘。哪一对I/O流是完成此任务最直接和合适的选择？",
+    "options": [
+      "`FileWriter` 和 `FileReader`",
+      "`FileOutputStream` 和 `FileInputStream`",
+      "`ObjectOutputStream` 和 `ObjectInputStream`",
+      "`PrintWriter` 和 `Scanner`"
+    ],
+    "answer": "`ObjectOutputStream` 和 `ObjectInputStream`",
+    "score": 2.5,
+    "explanation": "对象流（`ObjectOutputStream` / `ObjectInputStream`）是专门为序列化和反序列化整个Java对象而设计的，是处理复杂对象持久化的标准方式。"
+  },
+  {
+    "id": 69,
+    "type": "single",
+    "question": "当`new FileOutputStream(file)`被成功调用后，如果`file`已经存在，将会发生什么？",
+    "options": [
+      "抛出`FileAlreadyExistsException`异常。",
+      "在现有文件的末尾追加新内容。",
+      "现有文件的内容将被清空（覆盖），准备写入新内容。",
+      "询问用户是否要覆盖文件。"
+    ],
+    "answer": "现有文件的内容将被清空（覆盖），准备写入新内容。",
+    "score": 3,
+    "explanation": "`FileOutputStream`的这个构造函数默认以覆盖模式打开文件。如果希望追加内容，需要使用另一个构造函数 `new FileOutputStream(file, true)`。"
+  },
+  {
+    "id": 70,
+    "type": "short_answer",
+    "question": "`Serializable`接口是一个没有任何方法的接口，它的作用是什么？这类接口在Java中被称为？",
+    "answer": "这类接口被称为**标记接口 (Marker Interface)**。它的作用是向JVM提供一个元数据信息，即“标记”一个类的对象是“可以被序列化的”。JVM的序列化机制会在运行时检查一个对象所属的类是否实现了这个接口，以此来决定是否允许对其进行序列化操作。",
+    "score": 3,
+    "explanation": "考察对标记接口这一特殊设计模式的理解，以及`Serializable`接口在其中的具体作用。"
+  },
+  {
+    "id": 71,
+    "type": "multiple",
+    "question": "调用`file.listFiles()`方法，在哪些情况下可能会返回`null`？",
+    "options": [
+      "当`file`对象代表的目录为空时。",
+      "当`file`对象代表的路径不存在时。",
+      "当`file`对象代表的路径是一个文件而不是一个目录时。",
+      "当发生I/O错误（如权限不足）时。"
+    ],
+    "answer": [
+      "当`file`对象代表的路径不存在时。",
+      "当`file`对象代表的路径是一个文件而不是一个目录时。",
+      "当发生I/O错误（如权限不足）时。"
+    ],
+    "score": 4,
+    "explanation": "这是一个重要的API细节。当目录为空时，`listFiles()`会返回一个长度为0的空数组，而不是`null`。只有当`File`对象不代表一个有效的、可访问的目录时，才会返回`null`。"
+  },
+  {
+    "id": 72,
+    "type": "single",
+    "question": "在性能方面，用`BufferedReader`包装`FileReader`，与用哪个类包装`FileInputStream`是出于同样的目的？",
+    "options": [
+      "`ObjectInputStream`",
+      "`DataInputStream`",
+      "`FilterInputStream`",
+      "`BufferedInputStream`"
+    ],
+    "answer": "`BufferedInputStream`",
+    "score": 2.5,
+    "explanation": "`BufferedReader`为字符流提供缓冲，`BufferedInputStream`为字节流提供缓冲。它们的设计目的相同，都是通过减少对底层I/O设备的直接访问次数来提升读写性能，是装饰器模式在两个流体系中的平行应用。"
+  },
+  {
+    "id": 73,
+    "type": "short_answer",
+    "question": "一个`User`类实现了`Serializable`接口，但你希望它的`password`字段不被序列化，应该如何操作？为什么通常要这样做？",
+    "answer": "应该使用`transient`关键字修饰`password`字段，即 `private transient String password;`。通常这样做是出于**安全考虑**。密码、密钥等敏感信息不应该以明文形式持久化到文件或在网络上传输，以防止数据泄露后被恶意利用。将它们声明为`transient`可以有效避免其被包含在序列化的字节流中。",
+    "score": 3.5,
+    "explanation": "考察`transient`关键字的用法及应用场景，这在实际开发中处理敏感数据时非常重要。"
+  },
+  {
+    "id": 74,
+    "type": "single",
+    "question": "当你需要向一个文本文件写入内容，并且希望代码在不同操作系统（如Windows和Linux）上都能正确生成换行，使用哪个类的哪个方法是最便捷和可移植的？",
+    "options": [
+      "`BufferedWriter`的`write(\"\\n\")`方法",
+      "`FileWriter`的`write(System.lineSeparator())`方法",
+      "`PrintWriter`的`println()`方法",
+      "`FileOutputStream`的`write()`方法写入换行符的字节"
+    ],
+    "answer": "`PrintWriter`的`println()`方法",
+    "score": 3,
+    "explanation": "`PrintWriter.println()`方法会自动处理平台相关的行分隔符，提供了最佳的可移植性。其他选项虽然也能实现，但不如`println()`直接和方便。"
+  },
+  {
+    "id": 75,
+    "type": "multiple",
+    "question": "以下哪些流属于字符流（Character Stream）？",
+    "options": [
+      "FileReader",
+      "FileOutputStream",
+      "PrintWriter",
+      "BufferedInputStream"
+    ],
+    "answer": ["FileReader", "PrintWriter"],
+    "score": 2,
+    "explanation": "根据Java I/O的分类，以`Reader`或`Writer`结尾的类通常是字符流（如`FileReader`, `PrintWriter`）。以`InputStream`或`OutputStream`结尾的类是字节流（如`FileOutputStream`, `BufferedInputStream`）。"
+  },
+  {
+    "id": 76,
+    "type": "single",
+    "question": "给定`File f = new File(\"../docs/report.pdf\");`，调用`f.getName()`会返回什么？",
+    "options": ["../docs/report.pdf", "report.pdf", "docs/report.pdf", "../docs"],
+    "answer": "report.pdf",
+    "score": 2.5,
+    "explanation": "`getName()`方法返回路径中最后一个名称分隔符之后的部分，即文件名或最内层的目录名，而不包括之前的路径信息。"
+  },
+  {
+    "id": 77,
+    "type": "code",
+    "question": "假设一个文件`user.dat`中序列化存储了多个`User`对象。请补全代码，使用循环从文件中读取所有`User`对象，直到文件末尾。",
+    "code_prompt": "List<User> users = new ArrayList<>();\ntry (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(\"user.dat\"))) {\n    // Your code here\n} catch (IOException | ClassNotFoundException e) {\n    e.printStackTrace();\n}",
+    "answer": "List<User> users = new ArrayList<>();\ntry (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(\"user.dat\"))) {\n    while (true) {\n        try {\n            User user = (User) ois.readObject();\n            users.add(user);\n        } catch (EOFException e) {\n            // 到达文件末尾，正常退出循环\n            break;\n        }\n    }\n} catch (IOException | ClassNotFoundException e) {\n    e.printStackTrace();\n}",
+    "score": 4.5,
+    "explanation": "连续读取多个序列化对象的标准做法是使用一个无限循环，并在内部捕获`EOFException`（End Of File Exception），这个异常是`readObject()`在读到流末尾时抛出的，以此作为循环结束的标志。"
+  },
+  {
+    "id": 78,
+    "type": "single",
+    "question": "在Java I/O的装饰器模式应用中，哪一类流是整个流“链条”的基础，直接与数据源（如文件）进行交互？",
+    "options": ["节点流 (Node Stream)", "处理流 (Processing Stream)", "过滤流 (Filter Stream)", "对象流 (Object Stream)"],
+    "answer": "节点流 (Node Stream)",
+    "score": 3,
+    "explanation": "节点流（如`FileInputStream`, `FileReader`）是I/O操作的起点，它们直接连接到物理数据源。处理流（如`BufferedInputStream`, `ObjectInputStream`）则包装在节点流之上，为其添加额外功能。"
+  },
+  {
+    "id": 79,
+    "type": "single",
+    "question": "`File`类的`length()`方法返回的文件大小，其单位是什么？",
+    "options": ["比特(bit)", "字节(byte)", "千字节(KB)", "字符数"],
+    "answer": "字节(byte)",
+    "score": 1.5,
+    "explanation": "根据笔记中的API描述，`length()`方法返回的是`long`类型的字节数，这是文件大小在计算机系统中的基本单位。"
+  },
+  {
+    "id": 80,
+    "type": "short_answer",
+    "question": "为什么Java I/O体系要设计成需要层层包装（如 `new BufferedReader(new FileReader(...))`）的结构？这种设计的核心优势是什么？",
+    "answer": "这种设计是基于**装饰器设计模式**。其核心优势在于**灵活性和可组合性**。它将I/O的各种功能（如连接文件、提供缓冲、处理字符编码、序列化对象等）解耦到不同的类中。开发者可以根据具体需求，像搭积木一样自由地组合这些功能，为基础的节点流“装饰”上需要的能力，而无需为每一种功能组合都创建一个庞大而复杂的类。这大大提高了代码的复用性和扩展性。",
+    "score": 4,
+    "explanation": "这是一个宏观的设计思想问题，考察对Java I/O库设计哲学的理解，能够回答这个问题表明对I/O体系有了系统性的认识。"
   }
 ]
-
-/**
- * Calculates the grade based on the score.
- * S: 90-100
- * A: 80-89
- * B: 70-79
- * C: 60-69
- * D: 0-59
- * @param {number} score - The total score.
- * @returns {string} The grade.
- */
-export const getGrade = (score) => {
-  if (score >= 90) return 'S';
-  if (score >= 80) return 'A';
-  if (score >= 70) return 'B';
-  if (score >= 60) return 'C';
-  return 'D';
-};

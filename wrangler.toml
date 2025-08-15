@@ -2,6 +2,6 @@ name = "java-quiz-app"
 compatibility_date = "2024-04-05"
 
 [[d1_databases]]
-binding = "DB" # This is the name we'll use to access the database in our Worker code.
+binding = "DB"
 database_name = "quiz-db"
 database_id = "b54a3ca0-2810-4113-9628-42e9acf03970"

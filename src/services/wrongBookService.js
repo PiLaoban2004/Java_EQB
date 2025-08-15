@@ -28,16 +28,28 @@ export const getWrongQuestions = async () => {
  */
 export const addWrongQuestion = async (questionId, userAnswer) => {
   const userId = getUserId();
-  if (!userId) return;
+  if (!userId) {
+    console.error('Cannot add wrong question: User ID is not available.');
+    return;
+  }
+
+  console.log(`Adding wrong question for userId: ${userId}, questionId: ${questionId}`);
 
   try {
-    await fetch(`/api/users/${userId}/wrong-questions`, {
+    const response = await fetch(`/api/users/${userId}/wrong-questions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ questionId, userAnswer }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Failed to add wrong question. Server responded with:', errorData);
+    } else {
+      console.log('Successfully added wrong question.');
+    }
   } catch (error) {
-    console.error('Failed to add wrong question:', error);
+    console.error('Network error while adding wrong question:', error);
   }
 };
 
