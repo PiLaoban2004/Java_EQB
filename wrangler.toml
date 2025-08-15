@@ -1,7 +1,15 @@
 name = "java-quiz-app"
 compatibility_date = "2024-04-05"
+pages_build_output_dir = "./dist" # Add this line
 
 [[d1_databases]]
 binding = "DB"
 database_name = "quiz-db"
 database_id = "b54a3ca0-2810-4113-9628-42e9acf03970"
+migrations_dir = "./migrations" # Add this line
+
+[vars]
+JWT_SECRET_1 = "yjde07087s!" # Replace with a strong, random key
+
+[dev]
+port = 8789 # Use a different port for local development

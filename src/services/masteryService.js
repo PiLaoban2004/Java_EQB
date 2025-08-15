@@ -1,19 +1,21 @@
-import { getUserId } from './userService';
+import { getToken, isAuthenticated } from './userService';
 
 /**
- * Updates the mastery streak for a given question.
+ * Updates the mastery streak for a given question for the authenticated user.
  * @param {number} questionId - The ID of the question.
  * @param {boolean} correct - Whether the user answered the question correctly.
  * @returns {Promise<void>}
  */
 export const updateMastery = async (questionId, correct) => {
-  const userId = getUserId();
-  if (!userId) return;
+  if (!isAuthenticated()) return;
 
   try {
-    await fetch(`/api/users/${userId}/mastery/${questionId}`, {
+    await fetch(`/api/mastery/${questionId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`,
+      },
       body: JSON.stringify({ correct }),
     });
   } catch (error) {
@@ -22,15 +24,18 @@ export const updateMastery = async (questionId, correct) => {
 };
 
 /**
- * Fetches the list of mastered question IDs for the current user.
+ * Fetches the list of mastered question IDs for the authenticated user.
  * @returns {Promise<number[]>} A promise that resolves to an array of question IDs.
  */
 export const getMasteredQuestionIds = async () => {
-  const userId = getUserId();
-  if (!userId) return [];
+  if (!isAuthenticated()) return [];
 
   try {
-    const response = await fetch(`/api/users/${userId}/mastered-questions`);
+    const response = await fetch('/api/mastered-questions', {
+      headers: {
+        'Authorization': `Bearer ${getToken()}`,
+      },
+    });
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
@@ -42,15 +47,18 @@ export const getMasteredQuestionIds = async () => {
 };
 
 /**
- * Fetches the mastery progress for the current user.
+ * Fetches the mastery progress for the authenticated user.
  * @returns {Promise<Object>} A promise that resolves to the progress object.
  */
 export const getMasteryProgress = async () => {
-  const userId = getUserId();
-  if (!userId) return { masteredCount: 0, totalQuestions: 0, progress: 0 };
+  if (!isAuthenticated()) return { masteredCount: 0, totalQuestions: 0, progress: 0 };
 
   try {
-    const response = await fetch(`/api/users/${userId}/mastery-progress`);
+    const response = await fetch('/api/mastery-progress', {
+      headers: {
+        'Authorization': `Bearer ${getToken()}`,
+      },
+    });
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }

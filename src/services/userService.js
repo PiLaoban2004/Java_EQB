@@ -1,42 +1,99 @@
-import { v4 as uuidv4 } from 'uuid';
-
-const USER_ID_KEY = 'quizAppUserId';
-
-let currentUserId = null;
+const TOKEN_KEY = 'quizAppAuthToken';
 
 /**
- * Initializes the user service. Checks for an existing user ID in localStorage,
- * creates one if it doesn't exist, and ensures the user exists on the backend.
+ * Registers a new user.
+ * @param {string} username
+ * @param {string} password
+ * @returns {Promise<object>} User data including token if successful.
  */
-export const initUserService = async () => {
-  let userId = localStorage.getItem(USER_ID_KEY);
-
-  if (!userId) {
-    userId = uuidv4();
-    localStorage.setItem(USER_ID_KEY, userId);
-  }
-  
-  currentUserId = userId;
-
-  // Ensure the user exists in the backend database.
+export const registerUser = async (username, password) => {
   try {
-    const response = await fetch('/api/users', {
+    const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ username, password }),
     });
-    if (!response.ok) {
-      console.error('Failed to ensure user exists on the backend.');
+    const data = await response.json();
+    if (response.ok) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+      return { success: true, user: { id: data.userId, username: data.username } };
+    } else {
+      return { success: false, error: data.error || 'Registration failed' };
     }
   } catch (error) {
-    console.error('Error contacting backend to ensure user exists:', error);
+    console.error('Error during registration:', error);
+    return { success: false, error: 'Network error or server unavailable' };
   }
 };
 
 /**
- * Gets the current user's ID.
- * @returns {string | null} The current user ID.
+ * Logs in an existing user.
+ * @param {string} username
+ * @param {string} password
+ * @returns {Promise<object>} User data including token if successful.
  */
-export const getUserId = () => {
-  return currentUserId;
+export const loginUser = async (username, password) => {
+  try {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+      return { success: true, user: { id: data.userId, username: data.username } };
+    } else {
+      return { success: false, error: data.error || 'Login failed' };
+    }
+  } catch (error) {
+    console.error('Error during login:', error);
+    return { success: false, error: 'Network error or server unavailable' };
+  }
+};
+
+/**
+ * Logs out the current user by removing the token.
+ */
+export const logoutUser = () => {
+  localStorage.removeItem(TOKEN_KEY);
+};
+
+/**
+ * Gets the authentication token from local storage.
+ * @returns {string | null} The JWT token.
+ */
+export const getToken = () => {
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+/**
+ * Checks if the user is authenticated.
+ * @returns {boolean} True if a token exists, false otherwise.
+ */
+export const isAuthenticated = () => {
+  return !!getToken();
+};
+
+/**
+ * Decodes the JWT token to get current user information.
+ * NOTE: This is a client-side decode and should not be used for sensitive authorization.
+ * The server-side authMiddleware performs the actual verification.
+ * @returns {object | null} Decoded user payload or null if not authenticated/invalid token.
+ */
+export const getCurrentUser = () => {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    // Basic JWT decode (not verifying signature here, just parsing payload)
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error('Error decoding token:', e);
+    return null;
+  }
 };
