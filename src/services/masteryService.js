@@ -51,20 +51,29 @@ export const getMasteredQuestionIds = async () => {
  * @returns {Promise<Object>} A promise that resolves to the progress object.
  */
 export const getMasteryProgress = async () => {
-  if (!isAuthenticated()) return { masteredCount: 0, totalQuestions: 0, progress: 0 };
+  console.log('getMasteryProgress: Starting...');
+  if (!isAuthenticated()) {
+    console.log('getMasteryProgress: User not authenticated, returning default progress.');
+    return { masteredCount: 0, totalQuestions: 0, progress: 0 };
+  }
 
   try {
+    console.log('getMasteryProgress: Fetching from /api/mastery-progress...');
     const response = await fetch('/api/mastery-progress', {
       headers: {
         'Authorization': `Bearer ${getToken()}`,
       },
     });
+    console.log('getMasteryProgress: Response received, status =', response.status);
     if (!response.ok) {
+      console.error('getMasteryProgress: Network response was not ok.');
       throw new Error('Network response was not ok');
     }
-    return await response.json();
+    const data = await response.json();
+    console.log('getMasteryProgress: Data parsed =', data);
+    return data;
   } catch (error) {
-    console.error('Failed to fetch mastery progress:', error);
+    console.error('getMasteryProgress: Failed to fetch mastery progress:', error);
     return { masteredCount: 0, totalQuestions: 0, progress: 0 };
   }
 };

@@ -8,8 +8,6 @@ database_name = "quiz-db"
 database_id = "b54a3ca0-2810-4113-9628-42e9acf03970"
 migrations_dir = "./migrations" # Add this line
 
-[vars]
-JWT_SECRET_1 = "yjde07087s!" # Replace with a strong, random key
 
 [dev]
 port = 8789 # Use a different port for local development
