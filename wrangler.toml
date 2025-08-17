@@ -11,7 +11,3 @@ migrations_dir = "./migrations" # Add this line
 
 [dev]
 port = 8789 # Use a different port for local development
-
-[[services]]
-binding = "AI_PROXY_SERVICE"
-service = "47.99.123.168:3001"
