@@ -3,8 +3,6 @@ import { handle } from 'hono/cloudflare-pages';
 import { sign, verify } from 'hono/jwt'; // Import JWT functions
 import { v4 as uuidv4 } from 'uuid'; // For generating user IDs
 // import bcrypt from 'bcryptjs'; // bcryptjs is not fully compatible with Cloudflare Workers, switching to Web Crypto API
-import questionsData from '../../src/questions.json';
-import materialsData from '../../src/materials.json';
 
 const app = new Hono().basePath('/api');
 
@@ -12,6 +10,7 @@ const app = new Hono().basePath('/api');
 async function hashPassword(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const passwordData = new TextEncoder().encode(password);
+  const saltData = new TextEncoder().encode(new TextDecoder("utf-8").decode(salt));
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -24,7 +23,7 @@ async function hashPassword(password) {
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
-      salt: salt,
+      salt: saltData,
       iterations: 100000,
       hash: 'SHA-256',
     },
@@ -89,9 +88,23 @@ async function authMiddleware(c, next) {
   }
 }
 
-// This function now returns the data directly from the imported JSON file.
+// This function is now designed to always fetch the latest version, bypassing any cache.
 async function getQuestions(c) {
-  return questionsData;
+  const url = new URL(c.req.url);
+  // Add cache-busting parameter to the internal fetch
+  const questionsUrl = `${url.protocol}//${url.host}/questions.json?t=${new Date().getTime()}`;
+
+  try {
+    const response = await fetch(questionsUrl, { headers: { 'Cache-Control': 'no-cache' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch questions.json: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching questions.json:", error);
+    return [];
+  }
 }
 
 
@@ -268,12 +281,29 @@ app.get('/mastered-questions', authMiddleware, async (c) => {
 });
 
 // --- Materials ---
-// Get list of available materials by returning the imported JSON data.
+// Get list of available materials by fetching the manifest file, ensuring no cache is used.
 app.get('/materials', async (c) => {
-  c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  c.header('Pragma', 'no-cache');
-  c.header('Expires', '0');
-  return c.json(materialsData);
+  const url = new URL(c.req.url);
+  // Add cache-busting parameter to the internal fetch
+  const materialsUrl = `${url.protocol}//${url.host}/materials.json?t=${new Date().getTime()}`;
+
+  try {
+    const response = await fetch(materialsUrl, { headers: { 'Cache-Control': 'no-cache' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch materials.json: ${response.statusText}`);
+    }
+    const materials = await response.json();
+    
+    // Set headers on the final response to prevent client-side caching
+    c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    c.header('Pragma', 'no-cache');
+    c.header('Expires', '0');
+    
+    return c.json(materials);
+  } catch (error) {
+    console.error("Error fetching materials.json:", error);
+    return c.json([], 500); // Return empty array on error
+  }
 });
 
 // Get mastery progress for the authenticated user
@@ -308,9 +338,9 @@ app.post('/proxy/gemini', async (c) => {
     return c.json({ error: "GEMINI_API_KEY secret not found. Please configure it in Cloudflare dashboard." }, 500);
   }
 
-  // Pointing the proxy to the user-provided endpoint.
-  const GEMINI_API_ENDPOINT = 'https://pilaoban.dpdns.org';
-  const GEMINI_MODEL = 'gemini-1.5-flash'; // Matching the model we tried earlier
+  // Use the new domain name. Cloudflare will handle SSL.
+  const GEMINI_API_ENDPOINT = 'https://ai-proxy.pilaoban.dpdns.org/proxy/gemini';
+  const GEMINI_MODEL = 'gemini-2.5-flash';
   const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   
   try {
@@ -321,6 +351,8 @@ app.post('/proxy/gemini', async (c) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        // The Host header should match the domain
+        'Host': 'ai-proxy.pilaoban.dpdns.org', 
         'User-Agent': 'Cloudflare-Worker-Proxy/1.0' // Set a user agent
       },
       body: JSON.stringify(requestBody),
