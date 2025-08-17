@@ -338,7 +338,8 @@ app.post('/proxy/gemini', async (c) => {
     return c.json({ error: "GEMINI_API_KEY secret not found. Please configure it in Cloudflare dashboard." }, 500);
   }
 
-  const GEMINI_API_ENDPOINT = 'http://47.99.123.168:3001/proxy/gemini';
+  // Use the new domain name. Cloudflare will handle SSL.
+  const GEMINI_API_ENDPOINT = 'https://ai-proxy.pilaoban.dpdns.org/proxy/gemini';
   const GEMINI_MODEL = 'gemini-2.5-flash';
   const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   
@@ -350,7 +351,8 @@ app.post('/proxy/gemini', async (c) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Host': '47.99.123.168', // Explicitly set the Host header
+        // The Host header should match the domain
+        'Host': 'ai-proxy.pilaoban.dpdns.org', 
         'User-Agent': 'Cloudflare-Worker-Proxy/1.0' // Set a user agent
       },
       body: JSON.stringify(requestBody),
