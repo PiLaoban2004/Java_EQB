@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-MgKoiN/checked-fetch.js
+// ../.wrangler/tmp/bundle-dvv1T2/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -3786,7 +3786,6 @@ var app = new Hono2().basePath("/api");
 async function hashPassword(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const passwordData = new TextEncoder().encode(password);
-  const saltData = new TextEncoder().encode(new TextDecoder("utf-8").decode(salt));
   const key = await crypto.subtle.importKey(
     "raw",
     passwordData,
@@ -3797,7 +3796,7 @@ async function hashPassword(password) {
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
-      salt: saltData,
+      salt,
       iterations: 1e5,
       hash: "SHA-256"
     },
@@ -4537,7 +4536,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-MgKoiN/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-dvv1T2/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -4569,7 +4568,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-MgKoiN/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-dvv1T2/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -12,7 +12,6 @@ const app = new Hono().basePath('/api');
 async function hashPassword(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const passwordData = new TextEncoder().encode(password);
-  const saltData = new TextEncoder().encode(new TextDecoder("utf-8").decode(salt));
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -25,7 +24,7 @@ async function hashPassword(password) {
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
-      salt: saltData,
+      salt: salt,
       iterations: 100000,
       hash: 'SHA-256',
     },
