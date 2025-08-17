@@ -330,5 +330,40 @@ app.get('/mastery-progress', authMiddleware, async (c) => {
   }
 });
 
+// --- AI Proxy ---
+// This endpoint will proxy requests to the AI service to avoid mixed-content issues.
+app.post('/proxy/gemini', async (c) => {
+  const GEMINI_API_KEY = c.env.GEMINI_API_KEY; // Assuming you'll add this as a secret
+  const GEMINI_API_ENDPOINT = 'http://47.99.123.168:3001/proxy/gemini'; // The actual insecure endpoint
+  const GEMINI_MODEL = 'gemini-2.5-flash';
+
+  const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  
+  try {
+    const requestBody = await c.req.json();
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`AI Proxy Error: ${response.status} ${response.statusText}`, errorBody);
+      return c.json({ error: 'AI service proxy failed', details: errorBody }, response.status);
+    }
+
+    const data = await response.json();
+    return c.json(data);
+
+  } catch (error) {
+    console.error('Error in AI proxy:', error);
+    return c.json({ error: 'Failed to proxy AI request', details: error.message }, 500);
+  }
+});
+
 
 export const onRequest = handle(app);

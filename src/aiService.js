@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { GEMINI_API_KEY, GEMINI_API_ENDPOINT, GEMINI_MODEL } from './aiConfig.js';
+// GEMINI_API_KEY and GEMINI_MODEL are no longer needed here as they are handled by the backend proxy
+import { GEMINI_API_ENDPOINT } from './aiConfig.js';
 
 const generationConfig = {
   temperature: 0.2,
@@ -16,7 +17,8 @@ const safetySettings = [
 ];
 
 export const judgeAnswer = async (question, standardAnswer, userAnswer) => {
-  const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  // The URL is now simply the proxy endpoint.
+  const apiUrl = GEMINI_API_ENDPOINT;
 
   const prompt = `You are an expert Java technical interviewer. Your task is to evaluate a user's answer to a question. Based on the provided question, standard answer, and the user's answer, you must determine if the answer is correct, provide concise feedback, and give a score from 0 to the question's maximum possible score.
 
