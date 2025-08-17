@@ -3,6 +3,8 @@ import { handle } from 'hono/cloudflare-pages';
 import { sign, verify } from 'hono/jwt'; // Import JWT functions
 import { v4 as uuidv4 } from 'uuid'; // For generating user IDs
 // import bcrypt from 'bcryptjs'; // bcryptjs is not fully compatible with Cloudflare Workers, switching to Web Crypto API
+import questionsData from '../../src/questions.json';
+import materialsData from '../../src/materials.json';
 
 const app = new Hono().basePath('/api');
 
@@ -88,23 +90,9 @@ async function authMiddleware(c, next) {
   }
 }
 
-// This function is now designed to always fetch the latest version, bypassing any cache.
+// This function now returns the data directly from the imported JSON file.
 async function getQuestions(c) {
-  const url = new URL(c.req.url);
-  // Add cache-busting parameter to the internal fetch
-  const questionsUrl = `${url.protocol}//${url.host}/questions.json?t=${new Date().getTime()}`;
-
-  try {
-    const response = await fetch(questionsUrl, { headers: { 'Cache-Control': 'no-cache' } });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch questions.json: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching questions.json:", error);
-    return [];
-  }
+  return questionsData;
 }
 
 
@@ -281,29 +269,12 @@ app.get('/mastered-questions', authMiddleware, async (c) => {
 });
 
 // --- Materials ---
-// Get list of available materials by fetching the manifest file, ensuring no cache is used.
+// Get list of available materials by returning the imported JSON data.
 app.get('/materials', async (c) => {
-  const url = new URL(c.req.url);
-  // Add cache-busting parameter to the internal fetch
-  const materialsUrl = `${url.protocol}//${url.host}/materials.json?t=${new Date().getTime()}`;
-
-  try {
-    const response = await fetch(materialsUrl, { headers: { 'Cache-Control': 'no-cache' } });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch materials.json: ${response.statusText}`);
-    }
-    const materials = await response.json();
-    
-    // Set headers on the final response to prevent client-side caching
-    c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    c.header('Pragma', 'no-cache');
-    c.header('Expires', '0');
-    
-    return c.json(materials);
-  } catch (error) {
-    console.error("Error fetching materials.json:", error);
-    return c.json([], 500); // Return empty array on error
-  }
+  c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  c.header('Pragma', 'no-cache');
+  c.header('Expires', '0');
+  return c.json(materialsData);
 });
 
 // Get mastery progress for the authenticated user

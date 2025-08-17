@@ -1,5 +1,6 @@
 // This service now fetches questions from a JSON file and supports session-persistent additions.
 import { getMasteredQuestionIds } from './masteryService';
+import baseQuestions from '@/questions.json';
 
 let sessionQuestions = []; // In-memory cache for the questions
 const ADDED_QUESTIONS_KEY = 'addedQuestions';
@@ -11,11 +12,11 @@ const ADDED_QUESTIONS_KEY = 'addedQuestions';
 export const getQuestions = async () => {
   if (sessionQuestions.length === 0) {
     try {
-      const response = await fetch('/questions.json');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const baseQuestions = await response.json();
+      // const response = await fetch('/questions.json');
+      // if (!response.ok) {
+      //   throw new Error(`HTTP error! status: ${response.status}`);
+      // }
+      // const baseQuestions = await response.json();
       
       // Load added questions from sessionStorage
       const addedQuestionsStr = sessionStorage.getItem(ADDED_QUESTIONS_KEY);

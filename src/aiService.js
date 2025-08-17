@@ -22,7 +22,7 @@ export const judgeAnswer = async (question, standardAnswer, userAnswer) => {
 
   const prompt = `You are an expert Java technical interviewer. Your task is to evaluate a user's answer to a question. Based on the provided question, standard answer, and the user's answer, you must determine if the answer is correct, provide concise feedback, and give a score from 0 to the question's maximum possible score.
 
-You MUST return your evaluation in a strict JSON format, without any markdown formatting or other text. The JSON object must contain these three fields:
+You MUST return your evaluation in a strict JSON format, without any markdown formatting or other text. 使用中文来回复The JSON object must contain these three fields:
 - "isCorrect": boolean
 - "feedback": string (your concise feedback)
 - "score": number (a score from 0 to ${question.score})

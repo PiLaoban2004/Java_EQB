@@ -1439,5 +1439,185 @@
     "answer": "线程数量根据任务量动态调整，几乎没有上限，适合执行大量、耗时短的任务。",
     "score": 3,
     "explanation": "可缓存线程池的特点是其高度的伸缩性。当有新任务时，如果池中有空闲线程就复用，如果没有就创建新线程，理论上可以无限创建。空闲超过一定时间（默认60秒）的线程会被回收。"
+  },
+  {
+    "id": 126,
+    "type": "single",
+    "question": "根据笔记，Java反射机制的核心思想是什么？",
+    "options": [
+      "在编译时静态地检查和链接类的所有成员。",
+      "允许程序在运行时动态地获取类的内部信息并操作其成员。",
+      "一种用于提升代码执行效率的底层优化技术。",
+      "主要用于实现类的多重继承。"
+    ],
+    "answer": "允许程序在运行时动态地获取类的内部信息并操作其成员。",
+    "score": 2.5,
+    "explanation": "笔记开篇即明确指出，反射的核心是在“运行时”动态地“获取”和“操作”类的内部结构，与常规的编译时静态检查形成对比。"
+  },
+  {
+    "id": 127,
+    "type": "single",
+    "question": "在需要根据配置文件中的字符串类名来加载并实例化一个对象的场景下，最适合使用哪种方式获取`Class`对象？",
+    "options": [
+      "`对象.getClass()`",
+      "`类名.class`",
+      "`Class.forName(\"全限定类名\")`",
+      "`ClassLoader.getSystemClassLoader()`"
+    ],
+    "answer": "`Class.forName(\"全限定类名\")`",
+    "score": 3,
+    "explanation": "笔记中强调，`Class.forName()`是最灵活的方式，它接收一个字符串作为参数，这使其非常适合于读取配置文件、JDBC驱动加载等需要在运行时才能确定具体类名的动态场景。"
+  },
+  {
+    "id": 128,
+    "type": "short_answer",
+    "question": "请解释`Class`类中`getMethods()`和`getDeclaredMethods()`这两个API系列在获取方法时的核心区别。",
+    "answer": "核心区别在于两个维度：访问权限和继承关系。\n1. `getMethods()`: 只能获取所有**公开的(public)**方法，但**包括**从父类和接口继承而来的公有方法。\n2. `getDeclaredMethods()`: 可以获取**所有权限**（public, protected, default, private）的方法，但**仅限于**当前类自己声明的方法，不包括任何从父类或接口继承的方法。",
+    "score": 4,
+    "explanation": "这是反射API中一个极其重要的命名规律和功能区分，是面试中的高频考点。理解`Declared`的含义——“仅限当前类声明”，是掌握反射API的关键。"
+  },
+  {
+    "id": 129,
+    "type": "code",
+    "question": "假设有一个`User`类，它只有一个私有的无参构造方法`private User() {}`。请使用反射来创建该`User`类的一个实例。",
+    "answer": "// 1. 获取User类的Class对象\nClass<User> userClass = User.class;\n// 2. 获取私有的无参构造器\nConstructor<User> constructor = userClass.getDeclaredConstructor();\n// 3. 暴力破解，取消访问权限检查\nconstructor.setAccessible(true);\n// 4. 调用构造器创建实例\nUser userInstance = constructor.newInstance();",
+    "score": 4.5,
+    "explanation": "此题考察了通过反射实例化一个具有私有构造器的类的完整流程，核心步骤包括：获取`DeclaredConstructor`、使用`setAccessible(true)`进行暴力破解、以及调用`newInstance()`。这是反射强大能力的直接体现。"
+  },
+  {
+    "id": 130,
+    "type": "short_answer",
+    "question": "请简述Java类加载器的双亲委派模型（Parents Delegation Model）的工作流程。",
+    "answer": "当一个类加载器收到加载类的请求时，它首先不会自己去尝试加载，而是将这个请求**委派给它的父加载器**去执行。每一层加载器都会重复这个动作，直到请求最终到达顶层的启动类加载器（Bootstrap ClassLoader）。只有当父加载器在自己的搜索范围内找不到所需的类，并反馈无法加载时，子加载器才会尝试自己去加载这个类。",
+    "score": 4.5,
+    "explanation": "双亲委派模型是Java类加载机制的核心，也是JVM相关面试题中的重中之重。理解其“自下而上委派，自上而下加载”的流程对于理解Java的类隔离和安全机制至关重要。"
+  },
+  {
+    "id": 131,
+    "type": "single",
+    "question": "当使用反射`method.invoke(obj, args)`调用一个方法时，如果该方法内部本身执行时抛出了一个`ArithmeticException`，那么`invoke`方法会向外抛出什么异常？",
+    "options": [
+      "直接抛出`ArithmeticException`",
+      "抛出`IllegalAccessException`",
+      "抛出`InvocationTargetException`",
+      "抛出`NoSuchMethodException`"
+    ],
+    "answer": "抛出`InvocationTargetException`",
+    "score": 4,
+    "explanation": "根据笔记，反射机制会将目标方法内部抛出的原始异常包装在`InvocationTargetException`中再向外抛出。要获取原始的`ArithmeticException`，需要调用`getCause()`方法。这是为了区分是反射调用本身出错了，还是目标方法逻辑出错了。"
+  },
+  {
+    "id": 132,
+    "type": "code",
+    "question": "一个`Person`对象`p`有一个私有属性`private String name = \"John\";`。请使用反射将该对象的`name`属性值修改为`\"Doe\"`。",
+    "answer": "// 1. 获取Person类的Class对象\nClass<?> personClass = p.getClass();\n// 2. 获取名为'name'的私有属性\nField nameField = personClass.getDeclaredField(\"name\");\n// 3. 暴力破解访问权限\nnameField.setAccessible(true);\n// 4. 为p对象的nameField属性设置新值\nnameField.set(p, \"Doe\");",
+    "score": 4,
+    "explanation": "考察了反射操作私有属性的核心API：`getDeclaredField`、`setAccessible`和`set`。这是动态修改对象状态的常用反射技巧。"
+  },
+  {
+    "id": 133,
+    "type": "multiple",
+    "question": "以下哪几种方式可以正确地获取到一个类的`Class`对象？",
+    "options": [
+      "`String.class`",
+      "`new String().getClass()`",
+      "`Class.forName(\"java.lang.String\")`",
+      "`new Class(\"java.lang.String\")`"
+    ],
+    "answer": [
+      "`String.class`",
+      "`new String().getClass()`",
+      "`Class.forName(\"java.lang.String\")`"
+    ],
+    "score": 3,
+    "explanation": "`Class`类的构造方法是私有的，不能通过`new`来创建，因此选项D是错误的。选项A、B、C是笔记中列出的三种最主要的获取`Class`对象的方式。"
+  },
+  {
+    "id": 134,
+    "type": "short_answer",
+    "question": "在Java中，为什么核心类库（如`java.lang.String`）的类加载器是`null`？",
+    "answer": "因为Java的核心类库是由**启动类加载器 (Bootstrap ClassLoader)** 来加载的。这个加载器是JVM实现的一部分，通常由C++等本地语言编写，它并不存在于Java的类加载器体系中，所以在Java代码层面无法获取到它的引用。因此，当尝试获取这些核心类的类加载器时，约定俗成地返回`null`作为标识。",
+    "score": 3.5,
+    "explanation": "这是一个经典的类加载器面试题，考察对类加载器层次结构顶层的理解。"
+  },
+  {
+    "id": 135,
+    "type": "single",
+    "question": "`Method.invoke(Object obj, Object... args)`方法中的第一个参数`obj`代表什么？",
+    "options": [
+      "方法的返回值。",
+      "要调用该方法的对象实例；如果方法是静态的，则此参数为`null`。",
+      "方法的参数列表。",
+      "方法的`Class`对象。"
+    ],
+    "answer": "要调用该方法的对象实例；如果方法是静态的，则此参数为`null`。",
+    "score": 3,
+    "explanation": "`invoke`的含义是“调用”，其设计的逻辑是 `obj.method(args)`。因此，第一个参数`obj`是方法调用的主体（接收者）。对于静态方法，它不隶属于任何对象，而是属于类，所以调用主体是`null`。"
+  },
+  {
+    "id": 136,
+    "type": "multiple",
+    "question": "在进行反射操作时，以下哪些是常见的受检异常？",
+    "options": [
+      "ClassNotFoundException",
+      "NoSuchMethodException",
+      "NullPointerException",
+      "IllegalAccessException"
+    ],
+    "answer": ["ClassNotFoundException", "NoSuchMethodException", "IllegalAccessException"],
+    "score": 3.5,
+    "explanation": "`ClassNotFoundException`, `NoSuchMethodException`, `NoSuchFieldException`, `IllegalAccessException` 等都是反射操作中常见的受检异常，编译器会强制要求处理。而`NullPointerException`是运行时异常，通常由代码逻辑错误引起。"
+  },
+  {
+    "id": 137,
+    "type": "short_answer",
+    "question": "结合实际开发，请说明为什么像Spring这样的现代框架大量使用反射机制来实现其核心功能（如依赖注入）？",
+    "answer": "因为框架需要在**运行时**根据配置文件（如XML或注解）动态地创建和管理对象，而不是在编译时硬编码。反射提供了这种能力：\n1. **解耦**：框架可以通过读取配置（如`@Autowired`注解或XML中的类名）获取到类或接口的全限定名字符串。\n2. **动态创建对象**：使用`Class.forName()`加载类，并通过反射调用构造器`newInstance()`创建对象实例，无需`new`关键字。\n3. **动态调用方法/赋值**：通过反射获取`Field`或`Method`，实现依赖注入（DI），即动态地为对象的属性赋值（`field.set`）或调用其setter方法（`method.invoke`）。\n这使得应用程序的组件可以灵活插拔，极大地提高了程序的可配置性和扩展性。",
+    "score": 4.5,
+    "explanation": "这是一个结合实际开发场景的高阶问题，考察是否能将反射的理论知识与框架（如Spring IoC/DI）的设计思想联系起来，理解反射在构建通用、灵活框架中的关键作用。"
+  },
+  {
+    "id": 138,
+    "type": "code",
+    "question": "一个`Calculator`类有一个私有方法 `private int add(int a, int b) { return a + b; }`。请使用反射调用`Calculator`实例`calc`的这个`add`方法，并传入参数5和3。",
+    "answer": "// 1. 获取Class对象\nClass<?> clazz = calc.getClass();\n// 2. 获取add方法，需要指定参数类型\nMethod addMethod = clazz.getDeclaredMethod(\"add\", int.class, int.class);\n// 3. 暴力破解\naddMethod.setAccessible(true);\n// 4. 调用方法并获取返回值\nObject result = addMethod.invoke(calc, 5, 3); \n// System.out.println(result); // result会是Integer类型的8",
+    "score": 4.5,
+    "explanation": "此题是反射调用带参数的私有方法的完整示例，难点在于`getDeclaredMethod`时需要精确地提供方法的参数类型列表（`int.class`），以及在`invoke`时正确地传递参数。"
+  },
+  {
+    "id": 139,
+    "type": "single",
+    "question": "在访问一个类的私有成员（属性、方法或构造器）之前，调用`member.setAccessible(true)`的目的是什么？",
+    "options": [
+      "将该成员变为`public`。",
+      "为该成员创建一个公开的代理。",
+      "临时取消Java语言对该成员的访问权限检查，以便后续的反射调用可以成功。",
+      "检查该成员是否可以被访问。"
+    ],
+    "answer": "临时取消Java语言对该成员的访问权限检查，以便后续的反射调用可以成功。",
+    "score": 3,
+    "explanation": "`setAccessible(true)`并不会永久性地改变成员的访问修饰符（如`private`），它仅仅是在本次反射操作的上下文中，向JVM请求一个“绿色通道”，暂时忽略权限检查。这被称为“暴力破解”或“抑制访问权限检查”。"
+  },
+  {
+    "id": 140,
+    "type": "single",
+    "question": "当通过反射获取一个类的构造器时，使用`clazz.getDeclaredConstructor(int.class, String.class)`，这里的`int.class`代表什么？",
+    "options": [
+      "一个名为`int`的类。",
+      "代表基本数据类型`int`的`Class`对象。",
+      "代表包装类`Integer`的`Class`对象。",
+      "一个语法错误。"
+    ],
+    "answer": "代表基本数据类型`int`的`Class`对象。",
+    "score": 3,
+    "explanation": "Java中，不仅引用类型有对应的`Class`对象，所有基本数据类型（`int`, `double`, `boolean`等）以及`void`也都有一个对应的`Class`对象。`int.class`就是获取`int`这个基本类型的`Class`实例，用于在反射中精确匹配方法或构造器的参数签名。"
+  },
+  {
+    "id": 141,
+    "type": "short_answer",
+    "question": "反射机制虽然强大，但在实际开发中为什么不建议滥用？请指出它的至少两个主要缺点。",
+    "answer": "主要缺点有：\n1. **性能开销大**：反射操作涉及动态类型解析、方法查找等一系列耗时操作，其执行效率远低于常规的直接调用。\n2. **破坏封装性**：通过`setAccessible(true)`可以访问和修改类的私有成员，这违背了面向对象的封装原则，可能导致对象状态不一致或模块间的边界被破坏。\n3. **安全性问题**：反射能力过强，如果被恶意代码利用，可能会绕过安全检查，执行未授权的操作。\n4. **代码可读性和维护性差**：反射代码通常更复杂、冗长，且错误在编译期无法发现，只能在运行时暴露，增加了调试和维护的难度。\n(回答任意两点即可)",
+    "score": 3.5,
+    "explanation": "考察对反射技术“双刃剑”特性的理解。知道何时使用（框架、动态代理）和为何要谨慎使用（性能、封装性）是衡量一个开发者是否成熟的标志。"
   }
 ]

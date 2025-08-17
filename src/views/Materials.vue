@@ -18,22 +18,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { marked } from 'marked';
+import materialsData from '@/materials.json';
 
-const materials = ref([]);
-
-const fetchMaterials = async () => {
-  try {
-    // 添加一个缓存清除参数（时间戳）来确保获取到最新的数据
-    const response = await fetch(`/api/materials?t=${new Date().getTime()}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch materials list');
-    }
-    const data = await response.json();
-    materials.value = data.map(item => ({ ...item, showContent: false, renderedMarkdown: '', contentLoaded: false }));
-  } catch (error) {
-    console.error('Error loading materials list:', error);
-  }
-};
+const materials = ref(materialsData.map(item => ({ ...item, showContent: false, renderedMarkdown: '', contentLoaded: false })));
 
 const toggleContent = async (material) => {
   material.showContent = !material.showContent;
@@ -53,7 +40,7 @@ const toggleContent = async (material) => {
   }
 };
 
-onMounted(fetchMaterials);
+// onMounted(fetchMaterials);
 
 const addNewMaterial = async () => {
   // This is a placeholder for a real implementation.
