@@ -340,8 +340,8 @@ app.post('/proxy/gemini', async (c) => {
 
   // Pointing the proxy to the user-provided endpoint.
   const GEMINI_API_ENDPOINT = 'https://pilaoban.dpdns.org';
-  const GEMINI_MODEL = 'gemini-1.5-flash'; // Matching the model we tried earlier
-  const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  // Let's remove the model to use the server's default, in case of incompatibility.
+  const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
   
   try {
     const requestBody = await c.req.json();
