@@ -2,9 +2,73 @@ import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
 import { sign, verify } from 'hono/jwt'; // Import JWT functions
 import { v4 as uuidv4 } from 'uuid'; // For generating user IDs
-import bcrypt from 'bcryptjs'; // Import bcryptjs
+// import bcrypt from 'bcryptjs'; // bcryptjs is not fully compatible with Cloudflare Workers, switching to Web Crypto API
 
 const app = new Hono().basePath('/api');
+
+// --- Web Crypto API Helpers for Password Hashing ---
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const passwordData = new TextEncoder().encode(password);
+  const saltData = new TextEncoder().encode(new TextDecoder("utf-8").decode(salt));
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    passwordData,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: saltData,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    key,
+    256
+  );
+
+  const hashArray = Array.from(new Uint8Array(derivedBits));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return `${saltHex}:${hashHex}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  const [saltHex, hashHex] = storedHash.split(':');
+  if (!saltHex || !hashHex) return false;
+
+  const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+  const passwordData = new TextEncoder().encode(password);
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    passwordData,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    key,
+    256
+  );
+
+  const newHashArray = Array.from(new Uint8Array(derivedBits));
+  const newHashHex = newHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return newHashHex === hashHex;
+}
 
 // Middleware to verify JWT
 async function authMiddleware(c, next) {
@@ -60,7 +124,7 @@ app.post('/register', async (c) => {
   }
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10); // Hash password with bcrypt
+    const hashedPassword = await hashPassword(password); // Use Web Crypto
     const userId = uuidv4(); // Generate a unique ID for the user
 
     await c.env.DB.prepare('INSERT INTO Users (id, username, password_hash) VALUES (?, ?, ?)')
@@ -92,7 +156,7 @@ app.post('/login', async (c) => {
 
     const user = results[0];
 
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) { // Compare password with bcrypt
+    if (!user || !(await verifyPassword(password, user.password_hash))) { // Use Web Crypto
       return c.json({ error: 'Invalid username or password' }, 401);
     }
 
