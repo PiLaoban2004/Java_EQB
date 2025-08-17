@@ -333,16 +333,26 @@ app.get('/mastery-progress', authMiddleware, async (c) => {
 // --- AI Proxy ---
 // This endpoint will proxy requests to the AI service to avoid mixed-content issues.
 app.post('/proxy/gemini', async (c) => {
-  const GEMINI_API_KEY = c.env.GEMINI_API_KEY; // Assuming you'll add this as a secret
-  const GEMINI_API_ENDPOINT = 'http://47.99.123.168:3001/proxy/gemini'; // The actual insecure endpoint
-  const GEMINI_MODEL = 'gemini-2.5-flash';
-
-  const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-  
   try {
-    const requestBody = await c.req.json();
+    // The AI_PROXY_SERVICE is bound in wrangler.toml
+    const aiService = c.env.AI_PROXY_SERVICE;
+    if (!aiService) {
+      throw new Error("AI_PROXY_SERVICE binding not found. Please check wrangler.toml configuration.");
+    }
+
+    const GEMINI_API_KEY = c.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY secret not found. Please configure it in Cloudflare dashboard.");
+    }
+
+    const GEMINI_MODEL = 'gemini-2.5-flash';
+    const requestPath = `/proxy/gemini/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
     
-    const response = await fetch(apiUrl, {
+    const requestBody = await c.req.json();
+
+    // Use the service binding to fetch. This is the correct way to call external services.
+    // The URL path is appended to the service's base URL.
+    const response = await aiService.fetch(new URL(requestPath, "http://placeholder.com").toString(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
