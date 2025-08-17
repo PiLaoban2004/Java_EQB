@@ -1,6 +1,6 @@
 name = "java-quiz-app"
 compatibility_date = "2024-04-05"
-pages_build_output_dir = "./dist" # Add this line
+# pages_build_output_dir = "./dist" # Temporarily disable for local dev proxy
 
 [[d1_databases]]
 binding = "DB"

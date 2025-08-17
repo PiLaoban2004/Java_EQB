@@ -17,6 +17,7 @@
       <p>{{ quizDescription }}</p>
       <p>准备好开始了吗？</p>
       <el-button type="primary" @click="startQuiz">开始答题</el-button>
+      <el-button type="info" @click="addNewQuestion" style="margin-left: 10px;">添加新题目</el-button>
     </div>
 
     <div v-if="quizStarted && !quizSubmitted">
@@ -118,7 +119,7 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { getQuestions, deleteQuestion, resetQuestions } from '../services/questionService.js';
+import { getQuestions, deleteQuestion, resetQuestions, addQuestion } from '../services/questionService.js';
 import { judgeAnswer } from '../aiService.js';
 import { addWrongQuestion } from '../services/wrongBookService.js';
 import { updateMastery } from '../services/masteryService.js';
@@ -251,7 +252,7 @@ function isCorrect(question) {
 }
 
 async function startQuiz() {
-  resetQuestions();
+  // resetQuestions(); // 注释掉此行，以保留会话中新增的题目
   clearQuizState();
   const currentQuestions = await getQuestions();
   testPaper.value = generateTestPaperFrom(currentQuestions, quizType.value);
@@ -482,6 +483,24 @@ function formatUserAnswer(answer) {
         return answer.length > 0 ? answer.join(', ') : '未作答';
     }
     return answer;
+}
+
+async function addNewQuestion() {
+  const newQ = {
+    "id": 999,
+    "type": "single",
+    "question": "这是一个新的测试问题，它的答案是 A 吗？",
+    "options": ["A", "B", "C", "D"],
+    "answer": "A",
+    "score": 5,
+    "explanation": "这是一个用于验证添加功能的测试问题。"
+  };
+  const result = await addQuestion(newQ);
+  if (result.success) {
+    ElMessage.success('新题目已添加到当前会话！下次开始答题时，它可能会出现在试卷中。');
+  } else {
+    ElMessage.error('添加失败：' + result.message);
+  }
 }
 
 onUnmounted(() => {

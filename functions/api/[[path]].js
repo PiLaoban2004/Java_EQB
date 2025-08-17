@@ -24,29 +24,21 @@ async function authMiddleware(c, next) {
   }
 }
 
-let questionsCache = null;
-
+// This function is now designed to always fetch the latest version, bypassing any cache.
 async function getQuestions(c) {
-  if (questionsCache) {
-    return questionsCache;
-  }
-
-  // In Cloudflare Workers, we need to fetch assets from the deployed site.
-  // We construct the URL based on the incoming request's URL.
   const url = new URL(c.req.url);
-  const questionsUrl = `${url.protocol}//${url.host}/questions.json`;
+  // Add cache-busting parameter to the internal fetch
+  const questionsUrl = `${url.protocol}//${url.host}/questions.json?t=${new Date().getTime()}`;
 
   try {
-    const response = await fetch(questionsUrl);
+    const response = await fetch(questionsUrl, { headers: { 'Cache-Control': 'no-cache' } });
     if (!response.ok) {
       throw new Error(`Failed to fetch questions.json: ${response.statusText}`);
     }
     const data = await response.json();
-    questionsCache = data;
-    return questionsCache;
+    return data;
   } catch (error) {
     console.error("Error fetching questions.json:", error);
-    // Return an empty array or handle the error as appropriate
     return [];
   }
 }
@@ -225,14 +217,29 @@ app.get('/mastered-questions', authMiddleware, async (c) => {
 });
 
 // --- Materials ---
-// Get list of available materials
-app.get('/materials', (c) => {
-  // In a real-world scenario, this might be dynamically generated.
-  // For this project, we'll hardcode it based on the known files.
-  const materials = [
-    { id: 'java-collection', name: 'Java - Collection.md' },
-  ];
-  return c.json(materials);
+// Get list of available materials by fetching the manifest file, ensuring no cache is used.
+app.get('/materials', async (c) => {
+  const url = new URL(c.req.url);
+  // Add cache-busting parameter to the internal fetch
+  const materialsUrl = `${url.protocol}//${url.host}/materials.json?t=${new Date().getTime()}`;
+
+  try {
+    const response = await fetch(materialsUrl, { headers: { 'Cache-Control': 'no-cache' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch materials.json: ${response.statusText}`);
+    }
+    const materials = await response.json();
+    
+    // Set headers on the final response to prevent client-side caching
+    c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    c.header('Pragma', 'no-cache');
+    c.header('Expires', '0');
+    
+    return c.json(materials);
+  } catch (error) {
+    console.error("Error fetching materials.json:", error);
+    return c.json([], 500); // Return empty array on error
+  }
 });
 
 // Get mastery progress for the authenticated user

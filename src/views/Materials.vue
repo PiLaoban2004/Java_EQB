@@ -3,39 +3,82 @@
     <template #header>
       <div class="card-header">
         <span>学习资料</span>
+        <el-button type="primary" @click="addNewMaterial">添加新资料</el-button>
       </div>
     </template>
-    <div @click="toggleContent" class="material-title">
-      {{ materialName }}
+    <div v-for="material in materials" :key="material.id" class="material-item">
+      <div @click="toggleContent(material)" class="material-title">
+        {{ material.name }}
+      </div>
+      <div v-if="material.showContent" class="material-content" v-html="material.renderedMarkdown"></div>
     </div>
-    <div v-if="showContent" class="material-content" v-html="renderedMarkdown"></div>
   </el-card>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { marked } from 'marked';
 
-const renderedMarkdown = ref('');
-const showContent = ref(false);
-const materialName = ref('Java - Collection');
-const contentLoaded = ref(false);
+const materials = ref([]);
 
-const toggleContent = async () => {
-  showContent.value = !showContent.value;
-  if (showContent.value && !contentLoaded.value) {
+const fetchMaterials = async () => {
+  try {
+    // 添加一个缓存清除参数（时间戳）来确保获取到最新的数据
+    const response = await fetch(`/api/materials?t=${new Date().getTime()}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch materials list');
+    }
+    const data = await response.json();
+    materials.value = data.map(item => ({ ...item, showContent: false, renderedMarkdown: '', contentLoaded: false }));
+  } catch (error) {
+    console.error('Error loading materials list:', error);
+  }
+};
+
+const toggleContent = async (material) => {
+  material.showContent = !material.showContent;
+  if (material.showContent && !material.contentLoaded) {
     try {
-      const response = await fetch('/materials/Java - Collection.md');
+      const response = await fetch(`/materials/${material.name}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch material');
+        throw new Error('Failed to fetch material content');
       }
       const markdownText = await response.text();
-      renderedMarkdown.value = marked(markdownText);
-      contentLoaded.value = true;
+      material.renderedMarkdown = marked(markdownText);
+      material.contentLoaded = true;
     } catch (error) {
-      console.error('Error loading material:', error);
-      renderedMarkdown.value = '<p>无法加载学习资料，请稍后再试。</p>';
+      console.error('Error loading material content:', error);
+      material.renderedMarkdown = '<p>无法加载学习资料，请稍后再试。</p>';
     }
+  }
+};
+
+onMounted(fetchMaterials);
+
+const addNewMaterial = async () => {
+  // This is a placeholder for a real implementation.
+  // In a real app, this would involve a file upload and a server-side update.
+  // Here, we simulate it by directly calling a (non-existent) API endpoint.
+  
+  // Step 1: Let's assume a new file 'Java-New-Material.md' is "uploaded".
+  // We can't create files directly, so we'll just update the manifest.
+  
+  // Step 2: Update the materials.json manifest.
+  // We'll fetch the current list, add the new item, and "post" it back.
+  // This is a simulation as we don't have a POST endpoint.
+  
+  const newMaterial = {
+    id: 'java-new-material',
+    name: 'Java-New-Material.md'
+  };
+
+  // Add to the current view directly for immediate feedback
+  const exists = materials.value.some(m => m.id === newMaterial.id);
+  if (!exists) {
+    materials.value.push({ ...newMaterial, showContent: false, renderedMarkdown: '', contentLoaded: false });
+    alert('模拟成功！新的学习资料已添加到列表。在真实应用中，这会涉及到文件上传和后台更新。');
+  } else {
+    alert('模拟资料已存在。');
   }
 };
 </script>
@@ -46,7 +89,13 @@ const toggleContent = async () => {
   margin: 20px auto;
 }
 .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-weight: bold;
+}
+.material-item {
+  margin-bottom: 10px;
 }
 .material-title {
   font-size: 1.2em;
@@ -54,7 +103,8 @@ const toggleContent = async () => {
   cursor: pointer;
   padding: 10px 20px;
   background-color: #f9f9f9;
-  border-bottom: 1px solid #eee;
+  border: 1px solid #eee;
+  border-radius: 4px;
 }
 .material-title:hover {
   background-color: #f0f0f0;
@@ -62,6 +112,9 @@ const toggleContent = async () => {
 .material-content {
   padding: 20px;
   line-height: 1.6;
+  border: 1px solid #eee;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
 }
 .material-content :deep(h1),
 .material-content :deep(h2),

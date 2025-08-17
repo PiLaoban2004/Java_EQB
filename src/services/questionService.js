@@ -1,28 +1,40 @@
-// This service now fetches questions from a JSON file.
+// This service now fetches questions from a JSON file and supports session-persistent additions.
 import { getMasteredQuestionIds } from './masteryService';
 
 let sessionQuestions = []; // In-memory cache for the questions
+const ADDED_QUESTIONS_KEY = 'addedQuestions';
 
 /**
- * Fetches questions from the JSON file if the cache is empty.
+ * Fetches questions from the JSON file and merges them with questions added during the session.
  * @returns {Promise<Array>} A promise that resolves to the questions array.
  */
 export const getQuestions = async () => {
   if (sessionQuestions.length === 0) {
     try {
-      // The JSON file is in the public folder, so it can be fetched directly.
       const response = await fetch('/questions.json');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
-      sessionQuestions = data;
-      console.log('Questions loaded from JSON file.');
+      const baseQuestions = await response.json();
+      
+      // Load added questions from sessionStorage
+      const addedQuestionsStr = sessionStorage.getItem(ADDED_QUESTIONS_KEY);
+      const addedQuestions = addedQuestionsStr ? JSON.parse(addedQuestionsStr) : [];
+
+      // Combine and filter out duplicates, giving precedence to added questions
+      const allQuestions = [...addedQuestions, ...baseQuestions];
+      const uniqueQuestions = allQuestions.filter((q, index, self) => 
+        index === self.findIndex((t) => t.id === q.id)
+      );
+
+      sessionQuestions = uniqueQuestions;
+      console.log(`Questions loaded. ${baseQuestions.length} from JSON, ${addedQuestions.length} from session.`);
     } catch (error) {
       console.error("Could not fetch questions:", error);
       return []; // Return empty array on error
     }
   }
+  
   // Return a copy to prevent direct mutation of the cache
   const masteredIds = await getMasteredQuestionIds();
   const filteredQuestions = sessionQuestions.filter(q => !masteredIds.includes(q.id));
@@ -30,11 +42,12 @@ export const getQuestions = async () => {
 };
 
 /**
- * Resets the session questions cache, forcing a reload from the JSON file on next getQuestions call.
+ * Resets the session questions cache and clears session-added questions.
  */
 export const resetQuestions = () => {
   sessionQuestions = [];
-  console.log('Question cache has been cleared. Will reload from JSON on next request.');
+  sessionStorage.removeItem(ADDED_QUESTIONS_KEY);
+  console.log('Question cache and session storage have been cleared.');
 };
 
 /**
@@ -55,4 +68,40 @@ export const deleteQuestion = async (questionId) => {
     return { success: true };
   }
   return { success: false, message: "Question not found in session pool." };
+};
+
+/**
+ * Adds a new question to the in-memory session cache.
+ * This does not persist the question to the JSON file.
+ * @param {object} newQuestion - The question object to add.
+ * @returns {Promise<{success: boolean, message?: string}>}
+ */
+export const addQuestion = async (newQuestion) => {
+  // Ensure the cache is loaded
+  if (sessionQuestions.length === 0) {
+    await getQuestions();
+  }
+
+  // Basic validation
+  if (!newQuestion || !newQuestion.id || !newQuestion.question) {
+    return { success: false, message: "Invalid question object provided." };
+  }
+
+  // Check if question with the same ID already exists in the main cache
+  const exists = sessionQuestions.some(q => q.id === newQuestion.id);
+  if (exists) {
+    return { success: false, message: `Question with id ${newQuestion.id} already exists.` };
+  }
+
+  // Add to the in-memory cache
+  sessionQuestions.unshift(newQuestion); // Add to the beginning
+
+  // Add to sessionStorage for persistence across reloads
+  const addedQuestionsStr = sessionStorage.getItem(ADDED_QUESTIONS_KEY);
+  const addedQuestions = addedQuestionsStr ? JSON.parse(addedQuestionsStr) : [];
+  addedQuestions.unshift(newQuestion); // Add to the beginning
+  sessionStorage.setItem(ADDED_QUESTIONS_KEY, JSON.stringify(addedQuestions));
+
+  console.log(`New question with id ${newQuestion.id} added to session and sessionStorage.`);
+  return { success: true };
 };
