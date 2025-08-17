@@ -28,4 +28,11 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Environment variables
+.env
+.env.*
+!.env.example
+.dev.vars
+
 # src/aiConfig.js

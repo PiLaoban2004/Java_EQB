@@ -27,7 +27,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8788', // Point to the local wrangler dev server
+        target: 'http://127.0.0.1:8791', // Point to the local wrangler dev server on a new port
         changeOrigin: true,
       },
     },
