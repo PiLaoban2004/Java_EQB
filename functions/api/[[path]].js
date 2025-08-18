@@ -3,6 +3,8 @@ import { handle } from 'hono/cloudflare-pages';
 import { sign, verify } from 'hono/jwt'; // Import JWT functions
 import { v4 as uuidv4 } from 'uuid'; // For generating user IDs
 // import bcrypt from 'bcryptjs'; // bcryptjs is not fully compatible with Cloudflare Workers, switching to Web Crypto API
+import questionsData from '../../src/questions.json';
+import materialsData from '../../src/materials.json';
 
 const app = new Hono().basePath('/api');
 
@@ -10,7 +12,6 @@ const app = new Hono().basePath('/api');
 async function hashPassword(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const passwordData = new TextEncoder().encode(password);
-  const saltData = new TextEncoder().encode(new TextDecoder("utf-8").decode(salt));
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -23,7 +24,7 @@ async function hashPassword(password) {
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
-      salt: saltData,
+      salt: salt,
       iterations: 100000,
       hash: 'SHA-256',
     },
@@ -88,23 +89,9 @@ async function authMiddleware(c, next) {
   }
 }
 
-// This function is now designed to always fetch the latest version, bypassing any cache.
+// This function now returns the data directly from the imported JSON file.
 async function getQuestions(c) {
-  const url = new URL(c.req.url);
-  // Add cache-busting parameter to the internal fetch
-  const questionsUrl = `${url.protocol}//${url.host}/questions.json?t=${new Date().getTime()}`;
-
-  try {
-    const response = await fetch(questionsUrl, { headers: { 'Cache-Control': 'no-cache' } });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch questions.json: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching questions.json:", error);
-    return [];
-  }
+  return questionsData;
 }
 
 
@@ -281,29 +268,12 @@ app.get('/mastered-questions', authMiddleware, async (c) => {
 });
 
 // --- Materials ---
-// Get list of available materials by fetching the manifest file, ensuring no cache is used.
+// Get list of available materials by returning the imported JSON data.
 app.get('/materials', async (c) => {
-  const url = new URL(c.req.url);
-  // Add cache-busting parameter to the internal fetch
-  const materialsUrl = `${url.protocol}//${url.host}/materials.json?t=${new Date().getTime()}`;
-
-  try {
-    const response = await fetch(materialsUrl, { headers: { 'Cache-Control': 'no-cache' } });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch materials.json: ${response.statusText}`);
-    }
-    const materials = await response.json();
-    
-    // Set headers on the final response to prevent client-side caching
-    c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    c.header('Pragma', 'no-cache');
-    c.header('Expires', '0');
-    
-    return c.json(materials);
-  } catch (error) {
-    console.error("Error fetching materials.json:", error);
-    return c.json([], 500); // Return empty array on error
-  }
+  c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  c.header('Pragma', 'no-cache');
+  c.header('Expires', '0');
+  return c.json(materialsData);
 });
 
 // Get mastery progress for the authenticated user
@@ -341,7 +311,7 @@ app.post('/proxy/gemini', async (c) => {
   // Pointing the proxy to the user-provided endpoint.
   const GEMINI_API_ENDPOINT = 'https://pilaoban.dpdns.org';
   // Let's remove the model to use the server's default, in case of incompatibility.
-  const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+  const apiUrl = `${GEMINI_API_ENDPOINT}/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
   
   try {
     const requestBody = await c.req.json();
